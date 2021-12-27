@@ -9,25 +9,80 @@ import (
 )
 
 type Lexer struct {
-	input        io.RuneReader
-	position     int
-	readPosition int
-	char         rune
+	input     io.RuneReader
+	position  int
+	wasPeeked bool
+	peeked    rune
+	char      rune
 }
 
 func NewLexer(input io.RuneReader) *Lexer {
-	l := &Lexer{input: input}
+	l := &Lexer{input: input, position: -1}
 	l.readRune()
 	return l
 }
 
 func (lexer *Lexer) NextToken() token.Token {
 	var t token.Token
+	lexer.skipWhitespace()
+
 	switch lexer.char {
 	case '=':
-		t = token.Token{Type: token.ASSIGN, Literal: string(lexer.char)}
+		if lexer.peekRune() == '=' {
+			var equalsLit [2]rune
+			equalsLit[0] = lexer.char
+			lexer.readRune()
+			equalsLit[1] = lexer.char
+			t = token.Token{Type: token.EQUALS, Literal: string(equalsLit[:])}
+		} else {
+			t = token.Token{Type: token.ASSIGN, Literal: string(lexer.char)}
+		}
 	case '+':
 		t = token.Token{Type: token.PLUS, Literal: string(lexer.char)}
+	case '-':
+		t = token.Token{Type: token.MINUS, Literal: string(lexer.char)}
+	case '*':
+		t = token.Token{Type: token.MUL, Literal: string(lexer.char)}
+	case '/':
+		t = token.Token{Type: token.DIV, Literal: string(lexer.char)}
+	case '<':
+		if lexer.peekRune() == '=' {
+			var equalsLit [2]rune
+			equalsLit[0] = lexer.char
+			lexer.readRune()
+			equalsLit[1] = lexer.char
+			t = token.Token{Type: token.LESSEQ, Literal: string(equalsLit[:])}
+		} else {
+			t = token.Token{Type: token.LESS, Literal: string(lexer.char)}
+		}
+	case '>':
+		if lexer.peekRune() == '=' {
+			var equalsLit [2]rune
+			equalsLit[0] = lexer.char
+			lexer.readRune()
+			equalsLit[1] = lexer.char
+			t = token.Token{Type: token.GREATEREQ, Literal: string(equalsLit[:])}
+		} else {
+			t = token.Token{Type: token.GREATER, Literal: string(lexer.char)}
+		}
+	case '!':
+		if lexer.peekRune() == '=' {
+			var equalsLit [2]rune
+			equalsLit[0] = lexer.char
+			lexer.readRune()
+			equalsLit[1] = lexer.char
+			t = token.Token{Type: token.NOTEQUALS, Literal: string(equalsLit[:])}
+		} else {
+			t = token.Token{Type: token.NOT, Literal: string(lexer.char)}
+		}
+	case '|':
+		t = token.Token{Type: token.OR, Literal: string(lexer.char)}
+	case '^':
+		t = token.Token{Type: token.XOR, Literal: string(lexer.char)}
+	case '&':
+		t = token.Token{Type: token.AND, Literal: string(lexer.char)}
+	case '~':
+		t = token.Token{Type: token.REV, Literal: string(lexer.char)}
 	case ',':
 		t = token.Token{Type: token.COMMA, Literal: string(lexer.char)}
 	case '\n':
@@ -43,9 +98,14 @@ func (lexer *Lexer) NextToken() token.Token {
 	case 0:
 		t = token.Token{Type: token.EOF, Literal: ""}
 	default:
-		if unicode.IsLetter(lexer.char) {
-			return token.Token{Literal: lexer.readIdentifier()}
+		if unicode.IsLetter(lexer.char) || lexer.char == '_' {
+			id := lexer.readIdentifier()
+			return token.Token{Type: token.LookupIdentifier(id), Literal: id}
 		}
+		if isDigit(lexer.char) {
+			return token.Token{Type: token.INT, Literal: lexer.readNumber()}
+		}
+		t = token.Token{Type: token.ILLEGAL, Literal: string(lexer.char)}
 	}
 	lexer.readRune()
 	return t
@@ -53,7 +113,16 @@ func (lexer *Lexer) NextToken() token.Token {
 
 func (lexer *Lexer) readIdentifier() string {
 	var buf strings.Builder
-	for unicode.IsLetter(lexer.char) {
+	for unicode.IsLetter(lexer.char) || unicode.IsDigit(lexer.char) || lexer.char == '_' {
+		buf.WriteRune(lexer.char)
+		lexer.readRune()
+	}
+	return buf.String()
+}
+
+func (lexer *Lexer) readNumber() string {
+	var buf strings.Builder
+	for isDigit(lexer.char) {
 		buf.WriteRune(lexer.char)
 		lexer.readRune()
 	}
@@ -61,11 +130,36 @@ func (lexer *Lexer) readIdentifier() string {
 }
 
 func (lexer *Lexer) readRune() {
-	if r, _, err := lexer.input.ReadRune(); err != nil {
-		lexer.char = 0
-	} else {
-		lexer.char = r
+	lexer.position++
+	if lexer.wasPeeked {
+		lexer.wasPeeked = false
+		lexer.char = lexer.peeked
+		return
 	}
-	lexer.position = lexer.readPosition
-	lexer.readPosition++
+
+	if r, _, err := lexer.input.ReadRune(); err == nil {
+		lexer.char = r
+		return
+	}
+	lexer.char = 0
+}
+
+func (lexer *Lexer) peekRune() rune {
+	if r, _, err := lexer.input.ReadRune(); err == nil {
+		lexer.peeked = r
+		lexer.wasPeeked = true
+		return lexer.peeked
+	}
+	return 0
+}
+
+func (lexer *Lexer) skipWhitespace() {
+	for lexer.char == ' ' || lexer.char == '\t' || lexer.char == '\r' {
+		lexer.readRune()
+	}
+}
+
+func isDigit(r rune) bool {
+	// TODO support for hex is essential for me
+	return unicode.IsDigit(r)
 }
