@@ -45,23 +45,39 @@ func (lexer *Lexer) NextToken() token.Token {
 		t = token.Token{Type: token.MUL, Literal: string(lexer.char)}
 	case '/':
 		t = token.Token{Type: token.DIV, Literal: string(lexer.char)}
+	case '%':
+		t = token.Token{Type: token.MOD, Literal: string(lexer.char)}
 	case '<':
-		if lexer.peekRune() == '=' {
+		peekedRune := lexer.peekRune()
+		if peekedRune == '=' {
 			var equalsLit [2]rune
 			equalsLit[0] = lexer.char
 			lexer.readRune()
 			equalsLit[1] = lexer.char
 			t = token.Token{Type: token.LESSEQ, Literal: string(equalsLit[:])}
+		} else if peekedRune == '<' {
+			var equalsLit [2]rune
+			equalsLit[0] = lexer.char
+			lexer.readRune()
+			equalsLit[1] = lexer.char
+			t = token.Token{Type: token.LSHIFT, Literal: string(equalsLit[:])}
 		} else {
 			t = token.Token{Type: token.LESS, Literal: string(lexer.char)}
 		}
 	case '>':
-		if lexer.peekRune() == '=' {
+		peekedRune := lexer.peekRune()
+		if peekedRune == '=' {
 			var equalsLit [2]rune
 			equalsLit[0] = lexer.char
 			lexer.readRune()
 			equalsLit[1] = lexer.char
 			t = token.Token{Type: token.GREATEREQ, Literal: string(equalsLit[:])}
+		} else if peekedRune == '>' {
+			var equalsLit [2]rune
+			equalsLit[0] = lexer.char
+			lexer.readRune()
+			equalsLit[1] = lexer.char
+			t = token.Token{Type: token.RSHIFT, Literal: string(equalsLit[:])}
 		} else {
 			t = token.Token{Type: token.GREATER, Literal: string(lexer.char)}
 		}

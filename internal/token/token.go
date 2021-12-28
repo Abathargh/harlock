@@ -20,6 +20,7 @@ const (
 	MINUS   = "-"
 	MUL     = "*"
 	DIV     = "/"
+	MOD     = "%"
 	LESS    = "<"
 	GREATER = ">"
 
@@ -33,6 +34,9 @@ const (
 	NOTEQUALS = "!="
 	LESSEQ    = "<="
 	GREATEREQ = ">="
+
+	LSHIFT = "<<"
+	RSHIFT = ">>"
 
 	COMMA   = ","
 	ESCAPE  = "\\"

@@ -14,9 +14,9 @@ var test2 = 24
 fun f(a, b) {
 	var c = try div(a, b)
 }
-!|&^~-*/<>
+!|&^~-*</>
 if ret false true else
-!= == <= >=
+!= == <= >= % >> <<
 `
 	tests := []struct {
 		expectedType    token.TokenType
@@ -64,8 +64,8 @@ if ret false true else
 		{token.REV, "~"},
 		{token.MINUS, "-"},
 		{token.MUL, "*"},
-		{token.DIV, "/"},
 		{token.LESS, "<"},
+		{token.DIV, "/"},
 		{token.GREATER, ">"},
 		{token.NEWLINE, "\n"},
 
@@ -80,6 +80,10 @@ if ret false true else
 		{token.EQUALS, "=="},
 		{token.LESSEQ, "<="},
 		{token.GREATEREQ, ">="},
+		{token.MOD, "%"},
+		{token.RSHIFT, ">>"},
+		{token.LSHIFT, "<<"},
+		{token.NEWLINE, "\n"},
 	}
 
 	lexer := NewLexer(bufio.NewReader(bytes.NewBufferString(input)))
