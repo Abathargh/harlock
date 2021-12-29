@@ -176,3 +176,121 @@ func (ie *InfixExpression) String() string {
 	buf.WriteString(")")
 	return buf.String()
 }
+
+type Boolean struct {
+	Token token.Token
+	Value bool
+}
+
+func (b *Boolean) expressionNode() {}
+
+func (b *Boolean) TokenLiteral() string {
+	return b.Token.Literal
+}
+
+func (b *Boolean) String() string {
+	return b.Token.Literal
+}
+
+type IfExpression struct {
+	Token       token.Token
+	Condition   Expression
+	Consequence *BlockStatement
+	Alternative *BlockStatement
+}
+
+func (ife *IfExpression) expressionNode() {}
+
+func (ife *IfExpression) TokenLiteral() string {
+	return ife.Token.Literal
+}
+
+func (ife *IfExpression) String() string {
+	var buf strings.Builder
+	buf.WriteString("if")
+	buf.WriteString(ife.Condition.String())
+	buf.WriteString(" ")
+	buf.WriteString(ife.Consequence.String())
+
+	if ife.Alternative != nil {
+		buf.WriteString("else ")
+		buf.WriteString(ife.Alternative.String())
+	}
+	return buf.String()
+}
+
+type BlockStatement struct {
+	Token      token.Token
+	Statements []Statement
+}
+
+func (bs *BlockStatement) statementNode() {}
+
+func (bs *BlockStatement) TokenLiteral() string {
+	return bs.Token.Literal
+}
+
+func (bs *BlockStatement) String() string {
+	var buf strings.Builder
+	for _, statement := range bs.Statements {
+		buf.WriteString(statement.String())
+	}
+	return buf.String()
+}
+
+type FunctionLiteral struct {
+	Token      token.Token
+	Parameters []*Identifier
+	Body       *BlockStatement
+}
+
+func (fl *FunctionLiteral) expressionNode() {}
+
+func (fl *FunctionLiteral) TokenLiteral() string {
+	return fl.Token.Literal
+}
+
+func (fl *FunctionLiteral) String() string {
+	var buf strings.Builder
+	var parameters []string
+
+	for _, param := range fl.Parameters {
+		parameters = append(parameters, param.String())
+	}
+
+	buf.WriteString(fl.TokenLiteral())
+	buf.WriteString("(")
+	buf.WriteString(strings.Join(parameters, ", "))
+	buf.WriteString(")")
+	buf.WriteString(fl.Body.String())
+
+	return buf.String()
+}
+
+type CallExpression struct {
+	Token token.Token
+	// this can either be an identifier e.g. fun1()
+	// or a func literal e.g. fun(a){ a }(12)
+	Function  Expression
+	Arguments []Expression
+}
+
+func (ce *CallExpression) expressionNode() {}
+
+func (ce *CallExpression) TokenLiteral() string {
+	return ce.Token.Literal
+}
+
+func (ce *CallExpression) String() string {
+	var buf strings.Builder
+	var parameters []string
+	for _, param := range ce.Arguments {
+		parameters = append(parameters, param.String())
+	}
+
+	buf.WriteString(ce.Function.String())
+	buf.WriteString("(")
+	buf.WriteString(strings.Join(parameters, ", "))
+	buf.WriteString(")")
+	return buf.String()
+}

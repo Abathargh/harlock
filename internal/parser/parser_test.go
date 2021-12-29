@@ -11,52 +11,72 @@ import (
 )
 
 func TestVarStatements(t *testing.T) {
-	input := `var x = 5
-var y = 10
-var test = 2000
-`
-	lex := lexer.NewLexer(bufio.NewReader(bytes.NewBufferString(input)))
-	p := NewParser(lex)
-	program := p.ParseProgram()
-	checkParserErrors(t, p)
-	if program == nil {
-		t.Fatalf("ParseProgram returned nil")
+	tests := []struct {
+		input              string
+		expectedIdentifier string
+		expectedValue      interface{}
+	}{
+		{"var x = 5\n", "x", 5},
+		{"var test = true\n", "test", true},
+		{"var test2 = y\n", "test2", "y"},
 	}
+	for _, testCase := range tests {
+		lex := lexer.NewLexer(bufio.NewReader(bytes.NewBufferString(testCase.input)))
+		p := NewParser(lex)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
 
-	if len(program.Statements) != 3 {
-		t.Fatalf("Expected 3 statements, got %d", len(program.Statements))
-	}
+		if len(program.Statements) != 1 {
+			t.Fatalf("Expected 1 statements, got %d", len(program.Statements))
+		}
 
-	expectedIdentifiers := []string{"x", "y", "test"}
-	for idx, testCase := range expectedIdentifiers {
-		if !testLetStatement(t, program.Statements[idx], testCase) {
+		statement := program.Statements[0]
+		if !testVarStatement(t, statement, testCase.expectedIdentifier) {
+			return
+		}
+
+		value := statement.(*ast.VarStatement).Value
+		if !testLiteralExpression(t, value, testCase.expectedValue) {
 			return
 		}
 	}
 }
 
 func TestReturnStatement(t *testing.T) {
-	input := `ret 5
-ret 10
-ret 2000
-`
-	lex := lexer.NewLexer(bufio.NewReader(bytes.NewBufferString(input)))
-	p := NewParser(lex)
-	program := p.ParseProgram()
-	checkParserErrors(t, p)
-
-	if len(program.Statements) != 3 {
-		t.Fatalf("Expected 3 statements, got %d", len(program.Statements))
+	tests := []struct {
+		input         string
+		expectedValue interface{}
+	}{
+		{"ret 5\n", 5},
+		{"ret true\n", true},
+		{"ret false\n", false},
+		{"ret a\n", "a"},
 	}
 
-	for _, statement := range program.Statements {
-		returnStatement, ok := statement.(*ast.ReturnStatement)
+	for _, testCase := range tests {
+
+		lex := lexer.NewLexer(bufio.NewReader(bytes.NewBufferString(testCase.input)))
+		p := NewParser(lex)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		if len(program.Statements) != 1 {
+			t.Fatalf("Expected 1 statements, got %d", len(program.Statements))
+		}
+
+		returnStatement, ok := program.Statements[0].(*ast.ReturnStatement)
 		if !ok {
-			t.Errorf("Expected the statement to have ReturnStatement type, got %T", statement)
+			t.Errorf("Expected the statement to have ReturnStatement type, got %T", program.Statements[0])
 			continue
 		}
+
 		if returnStatement.TokenLiteral() != "ret" {
 			t.Errorf("Expected token literal to be 'ret', got %s", returnStatement.TokenLiteral())
+		}
+
+		value := returnStatement.ReturnValue
+		if !testLiteralExpression(t, value, testCase.expectedValue) {
+			return
 		}
 	}
 }
@@ -80,7 +100,7 @@ func TestIdentifierExpression(t *testing.T) {
 
 	expression := statement.Expression.(*ast.Identifier)
 	if !ok {
-		t.Errorf("Expected the expession to have *Identifier type, got %T", statement.Expression)
+		t.Errorf("Expected the expression to have *Identifier type, got %T", statement.Expression)
 	}
 
 	if expression.Value != "test" {
@@ -111,7 +131,7 @@ func TestIntegerLiteralExpression(t *testing.T) {
 
 	literal := statement.Expression.(*ast.IntegerLiteral)
 	if !ok {
-		t.Errorf("Expected the expession to have *Identifier type, got %T", statement.Expression)
+		t.Errorf("Expected the expression to have *IntegerLiteral type, got %T", statement.Expression)
 	}
 
 	if literal.Value != 15 {
@@ -127,11 +147,13 @@ func TestParsingPrefixExpressions(t *testing.T) {
 	tests := []struct {
 		input    string
 		prefixOp string
-		intValue int64
+		Value    interface{}
 	}{
 		{"!10", "!", 10},
 		{"-15", "-", 15},
 		{"~20", "~", 20},
+		{"!true", "!", true},
+		{"!false", "!", false},
 	}
 
 	for _, testCase := range tests {
@@ -158,7 +180,7 @@ func TestParsingPrefixExpressions(t *testing.T) {
 			t.Errorf("Expected operator %q got %q", testCase.prefixOp, prefixExpression.Operator)
 		}
 
-		if !testIntegerLiteral(t, prefixExpression.RightExpression, testCase.intValue) {
+		if !testLiteralExpression(t, prefixExpression.RightExpression, testCase.Value) {
 			return
 		}
 	}
@@ -167,9 +189,9 @@ func TestParsingPrefixExpressions(t *testing.T) {
 func TestParsingInfixOperators(t *testing.T) {
 	tests := []struct {
 		input        string
-		leftOperand  int64
+		leftOperand  interface{}
 		operator     string
-		rightOperand int64
+		rightOperand interface{}
 	}{
 		{"5 + 5", 5, "+", 5},
 		{"5 - 5", 5, "-", 5},
@@ -187,6 +209,10 @@ func TestParsingInfixOperators(t *testing.T) {
 		{"5 ^ 5", 5, "^", 5},
 		{"5 >> 5", 5, ">>", 5},
 		{"5 << 5", 5, "<<", 5},
+		{"true == true", true, "==", true},
+		{"false == false", false, "==", false},
+		{"true != false", true, "!=", false},
+		{"false != true", false, "!=", true},
 	}
 
 	for _, testCase := range tests {
@@ -204,23 +230,275 @@ func TestParsingInfixOperators(t *testing.T) {
 			t.Errorf("Expected the statement to have ExpressionStatement type, got %T", program.Statements[0])
 		}
 
-		infixExpression, ok := statement.Expression.(*ast.InfixExpression)
-		if !ok {
-			t.Errorf("Expected the expression to have InfixExpression type, got %T", statement.Expression)
-		}
-
-		if !testIntegerLiteral(t, infixExpression.LeftExpression, testCase.leftOperand) {
-			return
-		}
-
-		if infixExpression.Operator != testCase.operator {
-			t.Fatalf("expected operator %q, got %q", testCase.operator, infixExpression.Operator)
-		}
-
-		if !testIntegerLiteral(t, infixExpression.RightExpression, testCase.rightOperand) {
+		if !testInfixExpression(t, statement.Expression, testCase.leftOperand, testCase.operator, testCase.rightOperand) {
 			return
 		}
 	}
+}
+
+func TestBooleanExpression(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected bool
+	}{
+		{"true", true},
+		{"false", false},
+	}
+
+	for _, testCase := range tests {
+		lex := lexer.NewLexer(bufio.NewReader(bytes.NewBufferString(testCase.input)))
+		p := NewParser(lex)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		if len(program.Statements) != 1 {
+			t.Fatalf("Expected 1 statements, got %d", len(program.Statements))
+		}
+		statement, ok := program.Statements[0].(*ast.ExpressionStatement)
+		if !ok {
+			t.Errorf("Expected the statement to have ExpressionStatement type, got %T", program.Statements[0])
+		}
+
+		literal := statement.Expression.(*ast.Boolean)
+		if !ok {
+			t.Errorf("Expected the expression to have *Boolean type, got %T", statement.Expression)
+		}
+
+		if literal.Value != testCase.expected {
+			t.Errorf("Expected expression literal to be %t, got %t", testCase.expected, literal.Value)
+		}
+
+		if literal.TokenLiteral() != fmt.Sprintf("%t", testCase.expected) {
+			t.Errorf("Expected token literal to be %t, got %q", testCase.expected, literal.TokenLiteral())
+		}
+	}
+}
+
+func TestOperatorPrecedenceParsing(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"true", "true"},
+		{"3 <= 5 == true", "((3<=5)==true)"},
+		{"-a + b", "((-a)+b)"},
+		{"-a * b + c", "(((-a)*b)+c)"},
+		{"a | b & c |d", "((a|(b&c))|d)"},
+		{"(a | b) & (c | d)", "((a|b)&(c|d))"},
+		{"(a | b) & (c | d) * add(b | c)", "((a|b)&((c|d)*add((b|c))))"},
+	}
+
+	for _, testCase := range tests {
+		lex := lexer.NewLexer(bufio.NewReader(bytes.NewBufferString(testCase.input)))
+		p := NewParser(lex)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		expression := program.String()
+		if expression != testCase.expected {
+			t.Errorf("expected %q expression, got %q", testCase.expected, expression)
+		}
+	}
+}
+
+func TestIfExpression(t *testing.T) {
+	input := `if x <= y { x }`
+	lex := lexer.NewLexer(bufio.NewReader(bytes.NewBufferString(input)))
+	p := NewParser(lex)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("Expected 1 statements, got %d", len(program.Statements))
+	}
+	statement, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Errorf("Expected the statement to have ExpressionStatement type, got %T", program.Statements[0])
+	}
+
+	expression := statement.Expression.(*ast.IfExpression)
+	if !ok {
+		t.Errorf("Expected the expression to have *IfExpression type, got %T", statement.Expression)
+	}
+
+	if !testInfixExpression(t, expression.Condition, "x", "<=", "y") {
+		return
+	}
+
+	if len(expression.Consequence.Statements) != 1 {
+		t.Errorf("Expected 1 consequence statement got %d", len(expression.Consequence.Statements))
+	}
+
+	consequence, ok := expression.Consequence.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Errorf("Expected the consequence to have *ExpressionStatement type, got %T", expression.Consequence.Statements[0])
+	}
+
+	if !testIdentifier(t, consequence.Expression, "x") {
+		return
+	}
+
+	if expression.Alternative != nil {
+		t.Errorf("Expected no alternative statement, got one")
+	}
+}
+
+func TestIfElseExpression(t *testing.T) {
+	input := `if (x <= y) { z } else { w }`
+	lex := lexer.NewLexer(bufio.NewReader(bytes.NewBufferString(input)))
+	p := NewParser(lex)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("Expected 1 statements, got %d", len(program.Statements))
+	}
+	statement, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Errorf("Expected the statement to have ExpressionStatement type, got %T", program.Statements[0])
+	}
+
+	expression := statement.Expression.(*ast.IfExpression)
+	if !ok {
+		t.Errorf("Expected the expression to have *IfExpression type, got %T", statement.Expression)
+	}
+
+	if !testInfixExpression(t, expression.Condition, "x", "<=", "y") {
+		return
+	}
+
+	if len(expression.Consequence.Statements) != 1 {
+		t.Errorf("Expected 1 consequence statement got %d", len(expression.Consequence.Statements))
+	}
+
+	consequence, ok := expression.Consequence.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Errorf("Expected the consequence to have *ExpressionStatement type, got %T", expression.Consequence.Statements[0])
+	}
+
+	if !testIdentifier(t, consequence.Expression, "z") {
+		return
+	}
+
+	if expression.Alternative == nil {
+		t.Errorf("Expected alternative statement")
+	}
+
+	alternative, ok := expression.Alternative.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Errorf("Expected the alternative consequence to have *ExpressionStatement type, got %T", expression.Consequence.Statements[0])
+	}
+
+	if !testIdentifier(t, alternative.Expression, "w") {
+		return
+	}
+}
+
+func TestFunctionLiteral(t *testing.T) {
+	input := `fun(a, b, c) {a + b}`
+	lex := lexer.NewLexer(bufio.NewReader(bytes.NewBufferString(input)))
+	p := NewParser(lex)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("Expected 1 statements, got %d", len(program.Statements))
+	}
+	statement, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Errorf("Expected the statement to have ExpressionStatement type, got %T", program.Statements[0])
+	}
+
+	functionLiteral := statement.Expression.(*ast.FunctionLiteral)
+	if !ok {
+		t.Errorf("Expected the expression to have *FunctionLiteral type, got %T", statement.Expression)
+	}
+
+	if len(functionLiteral.Parameters) != 3 {
+		t.Fatalf("expected 3 function literal parameters, got %d",
+			len(functionLiteral.Parameters))
+	}
+
+	testLiteralExpression(t, functionLiteral.Parameters[0], "a")
+	testLiteralExpression(t, functionLiteral.Parameters[1], "b")
+	testLiteralExpression(t, functionLiteral.Parameters[2], "c")
+
+	if len(functionLiteral.Body.Statements) != 1 {
+		t.Errorf("epected 1 statement in the function body, got %d", len(functionLiteral.Body.Statements))
+	}
+
+	bodyStatement, ok := functionLiteral.Body.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Errorf("Expected the statement to have ExpressionStatement type, got %T", functionLiteral.Body.Statements[0])
+	}
+
+	testInfixExpression(t, bodyStatement.Expression, "a", "+", "b")
+}
+
+func TestFunctionParametersParsing(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected []string
+	}{
+		{"fun () {}", []string{}},
+		{"fun (a) {}", []string{"a"}},
+		{"fun (a, b, c) {}", []string{"a", "b", "c"}},
+	}
+
+	for _, testCase := range tests {
+		lex := lexer.NewLexer(bufio.NewReader(bytes.NewBufferString(testCase.input)))
+		p := NewParser(lex)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		statement := program.Statements[0].(*ast.ExpressionStatement)
+		functionLiteral := statement.Expression.(*ast.FunctionLiteral)
+		if len(functionLiteral.Parameters) != len(testCase.expected) {
+			t.Fatalf("expected %d parameters, got %d",
+				len(testCase.expected), len(functionLiteral.Parameters))
+		}
+
+		for idx, identifier := range testCase.expected {
+			testLiteralExpression(t, functionLiteral.Parameters[idx], identifier)
+		}
+	}
+}
+
+func TestCallExpressionParsing(t *testing.T) {
+	input := "test(a, a | e, b * c, c % f)"
+	lex := lexer.NewLexer(bufio.NewReader(bytes.NewBufferString(input)))
+	p := NewParser(lex)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("Expected 1 statements, got %d", len(program.Statements))
+	}
+	statement, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Errorf("Expected the statement to have ExpressionStatement type, got %T",
+			program.Statements[0])
+	}
+
+	callExpression, ok := statement.Expression.(*ast.CallExpression)
+	if !ok {
+		t.Errorf("Expected the expression to have *CallExpression type, got %T",
+			statement.Expression)
+	}
+
+	if !testIdentifier(t, callExpression.Function, "test") {
+		return
+	}
+
+	if len(callExpression.Arguments) != 4 {
+		t.Errorf("expected 4 arguments, got %d", len(callExpression.Arguments))
+	}
+
+	testLiteralExpression(t, callExpression.Arguments[0], "a")
+	testInfixExpression(t, callExpression.Arguments[1], "a", "|", "e")
+	testInfixExpression(t, callExpression.Arguments[2], "b", "*", "c")
+	testInfixExpression(t, callExpression.Arguments[3], "c", "%", "f")
+
 }
 
 func testIntegerLiteral(t *testing.T, rightExpression ast.Expression, integerValue int64) bool {
@@ -237,6 +515,25 @@ func testIntegerLiteral(t *testing.T, rightExpression ast.Expression, integerVal
 
 	if integerExprValue.TokenLiteral() != fmt.Sprintf("%d", integerValue) {
 		t.Errorf("Expected token literal %q got %q", integerValue, integerExprValue.TokenLiteral())
+		return false
+	}
+	return true
+}
+
+func testBooleanLiteral(t *testing.T, expression ast.Expression, value bool) bool {
+	identifier, ok := expression.(*ast.Boolean)
+	if !ok {
+		t.Errorf("expected Boolean type, got %T", expression)
+		return false
+	}
+
+	if identifier.Value != value {
+		t.Errorf("expected identifier value %t, got %t", value, identifier.Value)
+		return false
+	}
+
+	if identifier.TokenLiteral() != fmt.Sprintf("%t", value) {
+		t.Errorf("expected identifier value %t, got %q", value, identifier.TokenLiteral())
 		return false
 	}
 	return true
@@ -267,6 +564,8 @@ func testLiteralExpression(t *testing.T, expression ast.Expression, expected int
 		return testIntegerLiteral(t, expression, int64(value))
 	case int64:
 		return testIntegerLiteral(t, expression, value)
+	case bool:
+		return testBooleanLiteral(t, expression, value)
 	case string:
 		return testIdentifier(t, expression, value)
 	}
@@ -297,7 +596,7 @@ func testInfixExpression(t *testing.T, expression ast.Expression, left interface
 	return true
 }
 
-func testLetStatement(t *testing.T, statement ast.Statement, name string) bool {
+func testVarStatement(t *testing.T, statement ast.Statement, name string) bool {
 	if statement.TokenLiteral() != "var" {
 		t.Errorf("Expected var, got %s", statement.TokenLiteral())
 		return false
