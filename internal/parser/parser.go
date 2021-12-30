@@ -3,6 +3,7 @@ package parser
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/Abathargh/harlock/internal/ast"
 	"github.com/Abathargh/harlock/internal/lexer"
@@ -165,7 +166,7 @@ func (parser *Parser) parseReturnStatement() *ast.ReturnStatement {
 	parser.nextToken()
 
 	statement.ReturnValue = parser.parseExpression(LOWEST)
-	for parser.current.Type != token.NEWLINE {
+	for parser.current.Type != token.NEWLINE && parser.peeked.Type != token.RBRACE {
 		parser.nextToken()
 	}
 	return statement
@@ -208,8 +209,15 @@ func (parser *Parser) parseIdentifier() ast.Expression {
 }
 
 func (parser *Parser) parseIntegerLiteral() ast.Expression {
+	var value int64
+	var err error
 	literal := &ast.IntegerLiteral{Token: parser.current}
-	value, err := strconv.ParseInt(parser.current.Literal, 0, 64)
+	if strings.HasPrefix(parser.current.Literal, "0x") ||
+		strings.HasPrefix(parser.current.Literal, "0X") {
+		value, err = strconv.ParseInt(parser.current.Literal[2:], 16, 64)
+	} else {
+		value, err = strconv.ParseInt(parser.current.Literal, 0, 64)
+	}
 	if err != nil {
 		errMsg := fmt.Sprintf("%q could not be parsed as an integer", parser.current.Literal)
 		parser.errors = append(parser.errors, errMsg)

@@ -16,7 +16,7 @@ fun f(a, b) {
 }
 !|&^~-*</>
 if ret false true else
-!= == <= >= % >> << && ||
+!= == <= >= % >> << && || 0xFF
 `
 	tests := []struct {
 		expectedType    token.TokenType
@@ -85,6 +85,7 @@ if ret false true else
 		{token.LSHIFT, "<<"},
 		{token.LOGICAND, "&&"},
 		{token.LOGICOR, "||"},
+		{token.INT, "0xFF"},
 		{token.NEWLINE, "\n"},
 	}
 

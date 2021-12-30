@@ -135,6 +135,10 @@ func (lexer *Lexer) NextToken() token.Token {
 			return token.Token{Type: token.LookupIdentifier(id), Literal: id}
 		}
 		if isDigit(lexer.char) {
+			peek := lexer.peekRune()
+			if lexer.char == '0' && (peek == 'x' || peek == 'X') {
+				return token.Token{Type: token.INT, Literal: lexer.readHexNumber()}
+			}
 			return token.Token{Type: token.INT, Literal: lexer.readNumber()}
 		}
 		t = token.Token{Type: token.ILLEGAL, Literal: string(lexer.char)}
@@ -155,6 +159,22 @@ func (lexer *Lexer) readIdentifier() string {
 func (lexer *Lexer) readNumber() string {
 	var buf strings.Builder
 	for isDigit(lexer.char) {
+		buf.WriteRune(lexer.char)
+		lexer.readRune()
+	}
+	return buf.String()
+}
+
+func (lexer *Lexer) readHexNumber() string {
+	var buf strings.Builder
+
+	// read the 0x that we know is present
+	buf.WriteRune(lexer.char)
+	lexer.readRune()
+	buf.WriteRune(lexer.char)
+	lexer.readRune()
+
+	for isHexDigit(lexer.char) {
 		buf.WriteRune(lexer.char)
 		lexer.readRune()
 	}
@@ -192,6 +212,9 @@ func (lexer *Lexer) skipWhitespace() {
 }
 
 func isDigit(r rune) bool {
-	// TODO support for hex is essential for me
 	return unicode.IsDigit(r)
+}
+
+func isHexDigit(r rune) bool {
+	return isDigit(r) || ('a' <= r && r <= 'f') || ('A' <= r && r <= 'F')
 }
