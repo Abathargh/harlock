@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/Abathargh/harlock/internal/evaluator"
+
 	"github.com/Abathargh/harlock/internal/parser"
 
 	"github.com/Abathargh/harlock/internal/lexer"
@@ -31,8 +33,11 @@ func Start(input io.Reader, output io.Writer) {
 			continue
 		}
 
-		_, _ = io.WriteString(output, program.String())
-		_, _ = io.WriteString(output, "\n")
+		evaluatedProg := evaluator.Eval(program)
+		if evaluatedProg != nil {
+			_, _ = io.WriteString(output, evaluatedProg.Inspect())
+			_, _ = io.WriteString(output, "\n")
+		}
 	}
 }
 
