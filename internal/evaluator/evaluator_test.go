@@ -139,8 +139,8 @@ func TestReturnStatement(t *testing.T) {
 	}{
 		{"ret 10\n", 10},
 		{"ret 5 * 5\n", 25},
-		{"a\nret (4+3)*2\n", 14},
-		{"a\nret 2\na\n", 2},
+		{"ret (4+3)*2\n", 14},
+		{"ret 2\na\n", 2},
 		{`
 if 10 > 1 {
 	if 10 > 1 {
@@ -183,11 +183,28 @@ func TestErrorHandling(t *testing.T) {
 	}
 }
 
+func TestVarStatement(t *testing.T) {
+	tests := []struct {
+		input         string
+		expectedValue int64
+	}{
+		{"var a = 5\na", 5},
+		{"var a = (5 * 2) % 4\na", 2},
+		{"var a = 4 % 4\nvar b = a\n b", 0},
+		{"var a = 4\nvar b = a + 2\nvar c = b\nc", 6},
+	}
+
+	for _, testCase := range tests {
+		testIntegerObject(t, testEval(testCase.input), testCase.expectedValue)
+	}
+}
+
 func testEval(input string) object.Object {
 	l := lexer.NewLexer(bufio.NewReader(bytes.NewBufferString(input)))
 	p := parser.NewParser(l)
 	program := p.ParseProgram()
-	return Eval(program)
+	env := object.NewEnvironment()
+	return Eval(program, env)
 }
 
 func testIntegerObject(t *testing.T, obj object.Object, expected int64) bool {

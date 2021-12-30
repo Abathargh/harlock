@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/Abathargh/harlock/internal/object"
+
 	"github.com/Abathargh/harlock/internal/evaluator"
 
 	"github.com/Abathargh/harlock/internal/parser"
@@ -17,6 +19,7 @@ const PROMPT = ">>"
 
 func Start(input io.Reader, output io.Writer) {
 	scanner := bufio.NewScanner(input)
+	env := object.NewEnvironment()
 
 	for {
 		_, _ = fmt.Fprintf(output, PROMPT)
@@ -33,7 +36,7 @@ func Start(input io.Reader, output io.Writer) {
 			continue
 		}
 
-		evaluatedProg := evaluator.Eval(program)
+		evaluatedProg := evaluator.Eval(program, env)
 		if evaluatedProg != nil {
 			_, _ = io.WriteString(output, evaluatedProg.Inspect())
 			_, _ = io.WriteString(output, "\n")
