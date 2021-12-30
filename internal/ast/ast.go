@@ -294,3 +294,17 @@ func (ce *CallExpression) String() string {
 	buf.WriteString(")")
 	return buf.String()
 }
+
+type NoOp struct {
+	Token token.Token
+}
+
+func (no *NoOp) statementNode() {}
+
+func (no *NoOp) TokenLiteral() string {
+	return no.Token.Literal
+}
+
+func (no *NoOp) String() string {
+	return "NOOP"
+}

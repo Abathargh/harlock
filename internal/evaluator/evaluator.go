@@ -55,6 +55,8 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 			return letValue
 		}
 		env.Set(currentNode.Name.Value, letValue)
+	case *ast.NoOp:
+		// do nothing
 	case *ast.Identifier:
 		return evalIdentifier(currentNode, env)
 	case *ast.FunctionLiteral:

@@ -29,11 +29,7 @@ func (lexer *Lexer) NextToken() token.Token {
 	switch lexer.char {
 	case '=':
 		if lexer.peekRune() == '=' {
-			var equalsLit [2]rune
-			equalsLit[0] = lexer.char
-			lexer.readRune()
-			equalsLit[1] = lexer.char
-			t = token.Token{Type: token.EQUALS, Literal: string(equalsLit[:])}
+			t = token.Token{Type: token.EQUALS, Literal: lexer.buildTwoRuneOperator()}
 		} else {
 			t = token.Token{Type: token.ASSIGN, Literal: string(lexer.char)}
 		}
@@ -50,54 +46,30 @@ func (lexer *Lexer) NextToken() token.Token {
 	case '<':
 		peekedRune := lexer.peekRune()
 		if peekedRune == '=' {
-			var equalsLit [2]rune
-			equalsLit[0] = lexer.char
-			lexer.readRune()
-			equalsLit[1] = lexer.char
-			t = token.Token{Type: token.LESSEQ, Literal: string(equalsLit[:])}
+			t = token.Token{Type: token.LESSEQ, Literal: lexer.buildTwoRuneOperator()}
 		} else if peekedRune == '<' {
-			var equalsLit [2]rune
-			equalsLit[0] = lexer.char
-			lexer.readRune()
-			equalsLit[1] = lexer.char
-			t = token.Token{Type: token.LSHIFT, Literal: string(equalsLit[:])}
+			t = token.Token{Type: token.LSHIFT, Literal: lexer.buildTwoRuneOperator()}
 		} else {
 			t = token.Token{Type: token.LESS, Literal: string(lexer.char)}
 		}
 	case '>':
 		peekedRune := lexer.peekRune()
 		if peekedRune == '=' {
-			var equalsLit [2]rune
-			equalsLit[0] = lexer.char
-			lexer.readRune()
-			equalsLit[1] = lexer.char
-			t = token.Token{Type: token.GREATEREQ, Literal: string(equalsLit[:])}
+			t = token.Token{Type: token.GREATEREQ, Literal: lexer.buildTwoRuneOperator()}
 		} else if peekedRune == '>' {
-			var equalsLit [2]rune
-			equalsLit[0] = lexer.char
-			lexer.readRune()
-			equalsLit[1] = lexer.char
-			t = token.Token{Type: token.RSHIFT, Literal: string(equalsLit[:])}
+			t = token.Token{Type: token.RSHIFT, Literal: lexer.buildTwoRuneOperator()}
 		} else {
 			t = token.Token{Type: token.GREATER, Literal: string(lexer.char)}
 		}
 	case '!':
 		if lexer.peekRune() == '=' {
-			var equalsLit [2]rune
-			equalsLit[0] = lexer.char
-			lexer.readRune()
-			equalsLit[1] = lexer.char
-			t = token.Token{Type: token.NOTEQUALS, Literal: string(equalsLit[:])}
+			t = token.Token{Type: token.NOTEQUALS, Literal: lexer.buildTwoRuneOperator()}
 		} else {
 			t = token.Token{Type: token.NOT, Literal: string(lexer.char)}
 		}
 	case '|':
 		if lexer.peekRune() == '|' {
-			var equalsLit [2]rune
-			equalsLit[0] = lexer.char
-			lexer.readRune()
-			equalsLit[1] = lexer.char
-			t = token.Token{Type: token.LOGICOR, Literal: string(equalsLit[:])}
+			t = token.Token{Type: token.LOGICOR, Literal: lexer.buildTwoRuneOperator()}
 		} else {
 			t = token.Token{Type: token.OR, Literal: string(lexer.char)}
 		}
@@ -105,11 +77,7 @@ func (lexer *Lexer) NextToken() token.Token {
 		t = token.Token{Type: token.XOR, Literal: string(lexer.char)}
 	case '&':
 		if lexer.peekRune() == '&' {
-			var equalsLit [2]rune
-			equalsLit[0] = lexer.char
-			lexer.readRune()
-			equalsLit[1] = lexer.char
-			t = token.Token{Type: token.LOGICAND, Literal: string(equalsLit[:])}
+			t = token.Token{Type: token.LOGICAND, Literal: lexer.buildTwoRuneOperator()}
 		} else {
 			t = token.Token{Type: token.AND, Literal: string(lexer.char)}
 		}
@@ -209,6 +177,14 @@ func (lexer *Lexer) skipWhitespace() {
 	for lexer.char == ' ' || lexer.char == '\t' || lexer.char == '\r' {
 		lexer.readRune()
 	}
+}
+
+func (lexer *Lexer) buildTwoRuneOperator() string {
+	var buf [2]rune
+	buf[0] = lexer.char
+	lexer.readRune()
+	buf[1] = lexer.char
+	return string(buf[:])
 }
 
 func isDigit(r rune) bool {

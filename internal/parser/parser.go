@@ -133,6 +133,8 @@ func (parser *Parser) parseStatement() ast.Statement {
 		return parser.parseVarStatement()
 	case token.RET:
 		return parser.parseReturnStatement()
+	case token.NEWLINE:
+		return parser.parseNewlineRow()
 	default:
 		return parser.parseExpressionStatement()
 	}
@@ -229,6 +231,10 @@ func (parser *Parser) parseIntegerLiteral() ast.Expression {
 
 func (parser *Parser) parseBoolean() ast.Expression {
 	return &ast.Boolean{Token: parser.current, Value: parser.current.Type == token.TRUE}
+}
+
+func (parser *Parser) parseNewlineRow() ast.Statement {
+	return &ast.NoOp{Token: parser.current}
 }
 
 func (parser *Parser) parseGroupedExpression() ast.Expression {
