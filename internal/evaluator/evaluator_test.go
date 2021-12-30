@@ -166,7 +166,10 @@ func TestErrorHandling(t *testing.T) {
 		{"false + 12", "type mismatch: BOOLEAN + INTEGER"},
 		{"-true", "unknown operator: -BOOLEAN"},
 		{"~false", "unknown operator: ~BOOLEAN"},
-		{"if 2 < 3 { ret 12 + true }\n", "type mismatch: INTEGER + BOOLEAN"},
+		{"if 2 < 3 { ret 12 + true }", "type mismatch: INTEGER + BOOLEAN"},
+		{`"string" + 12`, "type mismatch: STRING + INTEGER"},
+		{`"string" + true`, "type mismatch: STRING + BOOLEAN"},
+		{`"string" - "string2"`, "unknown operator: STRING - STRING"},
 	}
 
 	for _, testCase := range tests {
@@ -236,6 +239,65 @@ func TestFunction(t *testing.T) {
 
 	for _, testCase := range tests {
 		testIntegerObject(t, testEval(testCase.input), testCase.expectedOutput)
+	}
+}
+
+func TestStringOperators(t *testing.T) {
+	tests := []struct {
+		input          string
+		expectedOutput interface{}
+	}{
+		{`'single ' + 'single'`, "single single"},
+		{`'single ' + "double"`, "single double"},
+		{`"double " + 'single'`, "double single"},
+		{`"double " + "double"`, "double double"},
+		{`"single" == "single"`, true},
+		{`"single" == "double"`, false},
+		{`"single" != "single"`, false},
+		{`"single" != "double"`, true},
+		{`'single' == 'single'`, true},
+		{`'single' == 'double'`, false},
+		{`'single' != 'single'`, false},
+		{`'single' != 'double'`, true},
+	}
+
+	for _, testCase := range tests {
+		evalString := testEval(testCase.input)
+		switch result := evalString.(type) {
+		case *object.String:
+			if result.Value != testCase.expectedOutput {
+				t.Errorf("expected %s, got %s", testCase.expectedOutput, result.Value)
+			}
+		case *object.Boolean:
+			if result.Value != testCase.expectedOutput {
+				t.Errorf("expected %t, got %t", testCase.expectedOutput, result.Value)
+			}
+		default:
+			t.Errorf("expected expression of type String or Boolean, got %T", result)
+		}
+
+	}
+}
+
+func TestStringLiteral(t *testing.T) {
+	tests := []struct {
+		input          string
+		expectedOutput string
+	}{
+		{`'test single quotes'`, "test single quotes"},
+		{`"test double quotes"`, "test double quotes"},
+	}
+
+	for _, testCase := range tests {
+		evalString := testEval(testCase.input)
+		stringObj, ok := evalString.(*object.String)
+		if !ok {
+			t.Fatalf("expected String type, got %T", evalString)
+		}
+
+		if stringObj.Value != testCase.expectedOutput {
+			t.Errorf("expected %s, got %s", testCase.expectedOutput, stringObj.Value)
+		}
 	}
 }
 

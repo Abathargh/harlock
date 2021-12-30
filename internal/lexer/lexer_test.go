@@ -17,7 +17,8 @@ fun f(a, b) {
 !|&^~-*</>
 if ret false true else
 != == <= >= % >> << && || 0xFF
-`
+"long string with text"
+'string with single quote'`
 	tests := []struct {
 		expectedType    token.TokenType
 		expectedLiteral string
@@ -87,6 +88,11 @@ if ret false true else
 		{token.LOGICOR, "||"},
 		{token.INT, "0xFF"},
 		{token.NEWLINE, "\n"},
+
+		{token.STR, "long string with text"},
+		{token.NEWLINE, "\n"},
+		{token.STR, "string with single quote"},
+		{token.EOF, ""},
 	}
 
 	lexer := NewLexer(bufio.NewReader(bytes.NewBufferString(input)))

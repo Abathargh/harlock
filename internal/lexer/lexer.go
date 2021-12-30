@@ -33,6 +33,10 @@ func (lexer *Lexer) NextToken() token.Token {
 		} else {
 			t = token.Token{Type: token.ASSIGN, Literal: string(lexer.char)}
 		}
+	case '\'':
+		fallthrough
+	case '"':
+		t = token.Token{Type: token.STR, Literal: lexer.readString()}
 	case '+':
 		t = token.Token{Type: token.PLUS, Literal: string(lexer.char)}
 	case '-':
@@ -162,6 +166,17 @@ func (lexer *Lexer) readRune() {
 		return
 	}
 	lexer.char = 0
+}
+
+func (lexer *Lexer) readString() string {
+	// TODO add char escaping
+	var buf strings.Builder
+	quoteType := lexer.char
+	lexer.readRune()
+	for ; lexer.char != quoteType && lexer.char != 0; lexer.readRune() {
+		buf.WriteRune(lexer.char)
+	}
+	return buf.String()
 }
 
 func (lexer *Lexer) peekRune() rune {

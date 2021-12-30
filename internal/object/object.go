@@ -12,6 +12,7 @@ type ObjectType string
 const (
 	NullObj        = "NULL"
 	ErrorObj       = "ERROR"
+	StringObj      = "STRING"
 	IntegerObj     = "INTEGER"
 	BooleanObj     = "BOOLEAN"
 	FunctionObj    = "FUNCTION"
@@ -106,4 +107,16 @@ func (f *Function) Inspect() string {
 	buf.WriteString(f.Body.String())
 	buf.WriteString("\n}")
 	return buf.String()
+}
+
+type String struct {
+	Value string
+}
+
+func (str *String) Type() ObjectType {
+	return StringObj
+}
+
+func (str *String) Inspect() string {
+	return fmt.Sprintf("\"%s\"", str.Value)
 }

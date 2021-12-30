@@ -504,6 +504,27 @@ func TestCallExpressionParsing(t *testing.T) {
 
 }
 
+func TestStringLiteralExpression(t *testing.T) {
+	input := `"test string hello world test"
+`
+	expected := "test string hello world test"
+
+	lex := lexer.NewLexer(bufio.NewReader(bytes.NewBufferString(input)))
+	p := NewParser(lex)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	statement := program.Statements[0].(*ast.ExpressionStatement)
+	stringLiteral, ok := statement.Expression.(*ast.StringLiteral)
+	if !ok {
+		t.Errorf("Expected the statement to have StringLiteral type, got %T", statement.Expression)
+	}
+
+	if stringLiteral.Value != expected {
+		t.Errorf("expected %s, got %s", expected, stringLiteral.Value)
+	}
+}
+
 func testIntegerLiteral(t *testing.T, rightExpression ast.Expression, integerValue int64) bool {
 	integerExprValue, ok := rightExpression.(*ast.IntegerLiteral)
 	if !ok {
