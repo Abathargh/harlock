@@ -1,6 +1,11 @@
 package object
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+
+	"github.com/Abathargh/harlock/internal/ast"
+)
 
 type ObjectType string
 
@@ -9,6 +14,7 @@ const (
 	ErrorObj       = "ERROR"
 	IntegerObj     = "INTEGER"
 	BooleanObj     = "BOOLEAN"
+	FunctionObj    = "FUNCTION"
 	ReturnValueObj = "RETURN_VALUE"
 )
 
@@ -74,4 +80,30 @@ func (e *Error) Type() ObjectType {
 
 func (e *Error) Inspect() string {
 	return fmt.Sprintf("Error: %s", e.Message)
+}
+
+type Function struct {
+	Parameters []*ast.Identifier
+	Body       *ast.BlockStatement
+	Env        *Environment
+}
+
+func (f *Function) Type() ObjectType {
+	return FunctionObj
+}
+
+func (f *Function) Inspect() string {
+	var buf strings.Builder
+	var parameters []string
+
+	for _, parameter := range f.Parameters {
+		parameters = append(parameters, parameter.String())
+	}
+
+	buf.WriteString("fun(")
+	buf.WriteString(strings.Join(parameters, ", "))
+	buf.WriteString(") {\n")
+	buf.WriteString(f.Body.String())
+	buf.WriteString("\n}")
+	return buf.String()
 }

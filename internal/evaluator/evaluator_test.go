@@ -199,6 +199,46 @@ func TestVarStatement(t *testing.T) {
 	}
 }
 
+func TestFunctionLiterals(t *testing.T) {
+	input := "fun(a) { a * a }\n"
+	expectedFunBody := "(a*a)"
+
+	obj := testEval(input)
+	functionObject, ok := obj.(*object.Function)
+	if !ok {
+		t.Fatalf("expected object of Function type, got %T", obj)
+	}
+
+	if len(functionObject.Parameters) != 1 {
+		t.Fatalf("expected 1 parameters, got %d", len(functionObject.Parameters))
+	}
+
+	if functionObject.Parameters[0].String() != "a" {
+		t.Fatalf("expected a parameter with name \"a\", got %s", functionObject.Parameters[0].String())
+	}
+
+	if functionObject.Body.String() != expectedFunBody {
+		t.Errorf("expected function body = %q, got %q", expectedFunBody, functionObject.Body.String())
+	}
+}
+
+func TestFunction(t *testing.T) {
+	tests := []struct {
+		input          string
+		expectedOutput int64
+	}{
+		{"var a = fun(x) { x }\na(20)\n", 20},
+		{"var mul = fun(x, y) { ret x * y }\nmul(2, 3)\n", 6},
+		{"var double = fun(x) { ret x << 2 }\ndouble(5)\n", 20},
+		{"fun(x) { ret x & 1 }(15)\n", 1},
+		{"var mod = fun(x, y) { ret x % y }\n mod(mod(6, 5), 3)", 1},
+	}
+
+	for _, testCase := range tests {
+		testIntegerObject(t, testEval(testCase.input), testCase.expectedOutput)
+	}
+}
+
 func testEval(input string) object.Object {
 	l := lexer.NewLexer(bufio.NewReader(bytes.NewBufferString(input)))
 	p := parser.NewParser(l)

@@ -57,6 +57,20 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		env.Set(currentNode.Name.Value, letValue)
 	case *ast.Identifier:
 		return evalIdentifier(currentNode, env)
+	case *ast.FunctionLiteral:
+		parameters := currentNode.Parameters
+		functionBody := currentNode.Body
+		return &object.Function{Parameters: parameters, Body: functionBody, Env: env}
+	case *ast.CallExpression:
+		functionCall := Eval(currentNode.Function, env)
+		if isError(functionCall) {
+			return functionCall
+		}
+		args := evalExpressions(currentNode.Arguments, env)
+		if len(args) == 1 && isError(args[0]) {
+			return args[0]
+		}
+		return callFunction(functionCall, args)
 	}
 	return nil
 }
@@ -225,6 +239,43 @@ func evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object
 		return newError("identifier not found: %s", node.Value)
 	}
 	return value
+}
+
+func evalExpressions(expressions []ast.Expression, env *object.Environment) []object.Object {
+	var evaluatedExpressions []object.Object
+	for _, expression := range expressions {
+		evaluatedExpr := Eval(expression, env)
+		if isError(evaluatedExpr) {
+			return []object.Object{evaluatedExpr}
+		}
+		evaluatedExpressions = append(evaluatedExpressions, evaluatedExpr)
+	}
+	return evaluatedExpressions
+}
+
+func callFunction(funcObj object.Object, args []object.Object) object.Object {
+	function, ok := funcObj.(*object.Function)
+	if !ok {
+		return newError("identifier is not a function: %s", funcObj.Type())
+	}
+	functionEnv := extendFunctionEnvironment(function, args)
+	evaluatedFunction := Eval(function.Body, functionEnv)
+	return unwrapReturnValue(evaluatedFunction)
+}
+
+func extendFunctionEnvironment(function *object.Function, args []object.Object) *object.Environment {
+	newEnv := object.WrappedEnvironment(function.Env)
+	for idx, parameter := range function.Parameters {
+		newEnv.Set(parameter.Value, args[idx])
+	}
+	return newEnv
+}
+
+func unwrapReturnValue(returnObj object.Object) object.Object {
+	if returned, ok := returnObj.(*object.ReturnValue); ok {
+		return returned.Value
+	}
+	return returnObj
 }
 
 func getBoolReference(input bool) *object.Boolean {
