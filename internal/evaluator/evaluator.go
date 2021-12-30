@@ -191,8 +191,14 @@ func evalIntegerInfixExpression(operator string, left, right object.Object) obje
 	case "*":
 		return &object.Integer{Value: leftValue * rightValue}
 	case "/":
+		if rightValue == 0 {
+			return newError("division by zero")
+		}
 		return &object.Integer{Value: leftValue / rightValue}
 	case "%":
+		if rightValue == 0 {
+			return newError("division by zero")
+		}
 		return &object.Integer{Value: leftValue % rightValue}
 	case "|":
 		return &object.Integer{Value: leftValue | rightValue}
@@ -201,8 +207,14 @@ func evalIntegerInfixExpression(operator string, left, right object.Object) obje
 	case "^":
 		return &object.Integer{Value: leftValue ^ rightValue}
 	case "<<":
+		if rightValue < 0 {
+			return newError("negative bit-shift")
+		}
 		return &object.Integer{Value: leftValue << rightValue}
 	case ">>":
+		if rightValue < 0 {
+			return newError("negative bit-shift")
+		}
 		return &object.Integer{Value: leftValue >> rightValue}
 	case "==":
 		return getBoolReference(leftValue == rightValue)
