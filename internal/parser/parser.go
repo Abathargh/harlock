@@ -13,6 +13,7 @@ type Priority int
 
 const (
 	LOWEST Priority = iota + 1
+	LOGICAL
 	EQUALS
 	LESSGREATER
 	OR
@@ -25,6 +26,8 @@ const (
 )
 
 var priorities = map[token.TokenType]Priority{
+	token.LOGICOR:   LOGICAL,
+	token.LOGICAND:  LOGICAL,
 	token.EQUALS:    EQUALS,
 	token.NOTEQUALS: EQUALS,
 	token.LESS:      LESSGREATER,
@@ -83,6 +86,8 @@ func NewParser(lex *lexer.Lexer) *Parser {
 
 	p.registerInfix(token.LPAREN, p.parseCallExpression)
 
+	p.registerInfix(token.LOGICOR, p.parseInfixExpression)
+	p.registerInfix(token.LOGICAND, p.parseInfixExpression)
 	p.registerInfix(token.EQUALS, p.parseInfixExpression)
 	p.registerInfix(token.NOTEQUALS, p.parseInfixExpression)
 	p.registerInfix(token.LESS, p.parseInfixExpression)

@@ -92,11 +92,27 @@ func (lexer *Lexer) NextToken() token.Token {
 			t = token.Token{Type: token.NOT, Literal: string(lexer.char)}
 		}
 	case '|':
-		t = token.Token{Type: token.OR, Literal: string(lexer.char)}
+		if lexer.peekRune() == '|' {
+			var equalsLit [2]rune
+			equalsLit[0] = lexer.char
+			lexer.readRune()
+			equalsLit[1] = lexer.char
+			t = token.Token{Type: token.LOGICOR, Literal: string(equalsLit[:])}
+		} else {
+			t = token.Token{Type: token.OR, Literal: string(lexer.char)}
+		}
 	case '^':
 		t = token.Token{Type: token.XOR, Literal: string(lexer.char)}
 	case '&':
-		t = token.Token{Type: token.AND, Literal: string(lexer.char)}
+		if lexer.peekRune() == '&' {
+			var equalsLit [2]rune
+			equalsLit[0] = lexer.char
+			lexer.readRune()
+			equalsLit[1] = lexer.char
+			t = token.Token{Type: token.LOGICAND, Literal: string(equalsLit[:])}
+		} else {
+			t = token.Token{Type: token.AND, Literal: string(lexer.char)}
+		}
 	case '~':
 		t = token.Token{Type: token.REV, Literal: string(lexer.char)}
 	case ',':

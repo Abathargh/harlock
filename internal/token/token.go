@@ -38,6 +38,9 @@ const (
 	LSHIFT = "<<"
 	RSHIFT = ">>"
 
+	LOGICAND = "&&"
+	LOGICOR  = "||"
+
 	COMMA   = ","
 	ESCAPE  = "\\"
 	NEWLINE = "\n"
