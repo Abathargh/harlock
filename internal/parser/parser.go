@@ -170,7 +170,8 @@ func (parser *Parser) parseReturnStatement() *ast.ReturnStatement {
 	parser.nextToken()
 
 	statement.ReturnValue = parser.parseExpression(LOWEST)
-	for parser.current.Type != token.NEWLINE && parser.peeked.Type != token.RBRACE {
+	for parser.current.Type != token.NEWLINE &&
+		(parser.peeked.Type != token.RBRACE && parser.peeked.Type != token.NEWLINE) {
 		parser.nextToken()
 	}
 	return statement
@@ -240,7 +241,7 @@ func (parser *Parser) parseStringLiteral() ast.Expression {
 }
 
 func (parser *Parser) parseNewlineRow() ast.Statement {
-	return &ast.NoOp{Token: parser.current}
+	return nil
 }
 
 func (parser *Parser) parseGroupedExpression() ast.Expression {
@@ -325,7 +326,12 @@ func (parser *Parser) parseBlockStatement() *ast.BlockStatement {
 	block := &ast.BlockStatement{Token: parser.current}
 	parser.nextToken()
 
-	for parser.current.Type != token.RBRACE && parser.current.Type != token.EOF {
+	for parser.current.Type != token.RBRACE {
+		if parser.current.Type == token.EOF {
+			errMsg := fmt.Sprintf("expected %s, got %s", token.RBRACE, token.EOF)
+			parser.errors = append(parser.errors, errMsg)
+			return nil
+		}
 		statement := parser.parseStatement()
 		if statement != nil {
 			block.Statements = append(block.Statements, statement)
