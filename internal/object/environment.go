@@ -20,7 +20,7 @@ func WrappedEnvironment(outerEnv *Environment) *Environment {
 func (env *Environment) Get(name string) (Object, bool) {
 	obj, ok := env.names[name]
 	if !ok && env.outer != nil {
-		obj, ok = env.Get(name)
+		obj, ok = env.outer.Get(name)
 	}
 	return obj, ok
 }

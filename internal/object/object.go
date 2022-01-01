@@ -11,13 +11,17 @@ type ObjectType string
 
 const (
 	NullObj        = "NULL"
+	TypeObj        = "Type"
 	ErrorObj       = "ERROR"
 	StringObj      = "STRING"
 	IntegerObj     = "INTEGER"
 	BooleanObj     = "BOOLEAN"
+	BuiltinObj     = "BUILTIN"
 	FunctionObj    = "FUNCTION"
 	ReturnValueObj = "RETURN_VALUE"
 )
+
+type BuiltinFunction func(args ...Object) Object
 
 type Object interface {
 	Type() ObjectType
@@ -72,6 +76,7 @@ func (rv *ReturnValue) Inspect() string {
 
 type Error struct {
 	// TODO add support for error line/column tracing (needs changes in lexer)
+	// TODO add subtype info referring to a typed enum for different error values
 	Message string
 }
 
@@ -119,4 +124,28 @@ func (str *String) Type() ObjectType {
 
 func (str *String) Inspect() string {
 	return fmt.Sprintf("\"%s\"", str.Value)
+}
+
+type Builtin struct {
+	Function BuiltinFunction
+}
+
+func (b *Builtin) Type() ObjectType {
+	return BuiltinObj
+}
+
+func (b *Builtin) Inspect() string {
+	return "builtin"
+}
+
+type Type struct {
+	Value ObjectType
+}
+
+func (t *Type) Type() ObjectType {
+	return TypeObj
+}
+
+func (t *Type) Inspect() string {
+	return fmt.Sprintf("%s", t.Value)
 }

@@ -234,6 +234,7 @@ func TestFunction(t *testing.T) {
 		{"var mul = fun(x, y) { ret x * y }\nmul(2, 3)\n", 6},
 		{"var double = fun(x) { ret x << 2 }\ndouble(5)\n", 20},
 		{"fun(x) { ret x & 1 }(15)\n", 1},
+		{"fun(x) { print(x)\n ret x & 1 }(15)\n", 1},
 		{"var mod = fun(x, y) { ret x % y }\n mod(mod(6, 5), 3)", 1},
 	}
 
@@ -297,6 +298,31 @@ func TestStringLiteral(t *testing.T) {
 
 		if stringObj.Value != testCase.expectedOutput {
 			t.Errorf("expected %s, got %s", testCase.expectedOutput, stringObj.Value)
+		}
+	}
+}
+
+func TestBuiltinFunctions(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected interface{}
+	}{
+		{`len("")`, 0},
+		{`len("ciao")`, 4},
+		{`type("ciao")`, object.StringObj},
+		{`type(1)`, object.IntegerObj},
+		{`type(1/0)`, object.ErrorObj},
+		{`type("ciao")`, object.StringObj},
+		//{`len("test1", "test2")`, ""},
+	}
+
+	for _, testCase := range tests {
+		evalBuiltin := testEval(testCase.input)
+		switch expected := testCase.expected.(type) {
+		case int:
+			testIntegerObject(t, evalBuiltin, int64(expected))
+		case object.ObjectType:
+			// TODO case error, string
 		}
 	}
 }
