@@ -6,16 +6,13 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/Abathargh/harlock/internal/object"
-
 	"github.com/Abathargh/harlock/internal/evaluator"
-
-	"github.com/Abathargh/harlock/internal/parser"
-
 	"github.com/Abathargh/harlock/internal/lexer"
+	"github.com/Abathargh/harlock/internal/object"
+	"github.com/Abathargh/harlock/internal/parser"
 )
 
-const PROMPT = ">>"
+const PROMPT = ">> "
 
 func Start(input io.Reader, output io.Writer) {
 	scanner := bufio.NewScanner(input)

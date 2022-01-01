@@ -52,11 +52,14 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	case *ast.IfExpression:
 		return evalIfExpression(currentNode, env)
 	case *ast.ReturnStatement:
-		returnValue := Eval(currentNode.ReturnValue, env)
-		if isError(returnValue) {
-			return returnValue
+		if currentNode.ReturnValue != nil {
+			returnValue := Eval(currentNode.ReturnValue, env)
+			if isError(returnValue) {
+				return returnValue
+			}
+			return &object.ReturnValue{Value: returnValue}
 		}
-		return &object.ReturnValue{Value: returnValue}
+		return &object.ReturnValue{Value: NULL}
 	case *ast.VarStatement:
 		letValue := Eval(currentNode.Value, env)
 		if isError(letValue) {
@@ -96,7 +99,7 @@ func evalProgram(program *ast.Program, env *object.Environment) object.Object {
 			return actualResult
 		}
 	}
-	return result
+	return nil
 }
 
 func evalPrefixExpression(operator string, right object.Object) object.Object {
@@ -154,7 +157,7 @@ func evalIfExpression(expression *ast.IfExpression, env *object.Environment) obj
 	} else if expression.Alternative != nil {
 		return Eval(expression.Alternative, env)
 	} else {
-		return NULL
+		return nil
 	}
 }
 

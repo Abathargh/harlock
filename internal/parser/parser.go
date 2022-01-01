@@ -167,8 +167,13 @@ func (parser *Parser) parseVarStatement() *ast.VarStatement {
 
 func (parser *Parser) parseReturnStatement() *ast.ReturnStatement {
 	statement := &ast.ReturnStatement{Token: parser.current}
-	parser.nextToken()
 
+	if parser.peeked.Type == token.NEWLINE || parser.peeked.Type == token.RBRACE {
+		statement.ReturnValue = nil
+		return statement
+	}
+
+	parser.nextToken()
 	statement.ReturnValue = parser.parseExpression(LOWEST)
 	for parser.current.Type != token.NEWLINE &&
 		(parser.peeked.Type != token.RBRACE && parser.peeked.Type != token.NEWLINE) {

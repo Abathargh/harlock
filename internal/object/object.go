@@ -123,7 +123,7 @@ func (str *String) Type() ObjectType {
 }
 
 func (str *String) Inspect() string {
-	return fmt.Sprintf("\"%s\"", str.Value)
+	return str.Value
 }
 
 type Builtin struct {
