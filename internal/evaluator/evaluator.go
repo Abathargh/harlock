@@ -14,6 +14,7 @@ var (
 
 	builtins = map[string]*object.Builtin{
 		"len":   {Function: builtinLen},
+		"pop":   {Function: builtinPop},
 		"type":  {Function: builtinType},
 		"push":  {Function: builtinPush},
 		"slice": {Function: builtinSlice},
@@ -147,6 +148,8 @@ func evalInfixExpression(operator string, left, right object.Object) object.Obje
 		return evalStringInfixExpression(operator, left, right)
 	case object.TypeObj:
 		return evalTypeInfixExpression(operator, left, right)
+	case object.ArrayObj:
+		return evalArrayInfixExpression(operator, left, right)
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
@@ -310,6 +313,21 @@ func evalTypeInfixExpression(operator string, left, right object.Object) object.
 	}
 }
 
+func evalArrayInfixExpression(operator string, left, right object.Object) object.Object {
+	leftArray := left.(*object.Array)
+	rightArray := right.(*object.Array)
+	switch operator {
+	case "+":
+		return &object.Array{Elements: append(leftArray.Elements, rightArray.Elements...)}
+	case "==":
+		return getBoolReference(arrayEquals(leftArray, rightArray))
+	case "!=":
+		return getBoolReference(!arrayEquals(leftArray, rightArray))
+	default:
+		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+	}
+}
+
 func evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object {
 	if value, ok := env.Get(node.Value); ok {
 		return value
@@ -398,6 +416,24 @@ func isTruthy(obj object.Object) bool {
 	default:
 		return true
 	}
+}
+
+func arrayEquals(obj1, obj2 *object.Array) bool {
+	if obj1 == obj2 {
+		return true
+	}
+
+	if len(obj1.Elements) != len(obj2.Elements) {
+		return false
+	}
+
+	for idx, elem := range obj1.Elements {
+		res := evalInfixExpression("==", elem, obj2.Elements[idx])
+		if res != TRUE {
+			return false
+		}
+	}
+	return true
 }
 
 func newError(format string, args ...interface{}) *object.Error {

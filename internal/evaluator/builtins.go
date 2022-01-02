@@ -69,6 +69,25 @@ func builtinPush(args ...object.Object) object.Object {
 	return &object.Array{Elements: newArr}
 }
 
+func builtinPop(args ...object.Object) object.Object {
+	if len(args) != 1 {
+		return newError("type error: pop requires an array")
+	}
+
+	array, isArray := args[0].(*object.Array)
+	if !isArray {
+		return newError("type error: first argument must be an array")
+	}
+
+	newArrLen := len(array.Elements) - 1
+	if newArrLen < 0 {
+		return newError("type error: cannot pop from an empty array")
+	}
+	newArr := make([]object.Object, newArrLen, newArrLen)
+	copy(newArr, array.Elements[:len(array.Elements)-1])
+	return &object.Array{Elements: newArr}
+}
+
 func builtinSlice(args ...object.Object) object.Object {
 	if len(args) != 3 {
 		return newError("type error: slice requires an array and the range to slice")

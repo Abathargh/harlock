@@ -313,6 +313,9 @@ func TestBuiltinFunctions(t *testing.T) {
 		{`type(1)`, object.IntegerObj},
 		{`type(1/0)`, object.ErrorObj},
 		{`type("ciao")`, object.StringObj},
+		{`print("ciao")`, nil},
+		{`push([1, 2], 3)`, "[1, 2, 3]"},
+		{`pop([1, 2])`, "[1]"},
 		//{`len("test1", "test2")`, ""},
 	}
 
