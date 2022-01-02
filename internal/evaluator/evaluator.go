@@ -13,12 +13,14 @@ var (
 	FALSE = &object.Boolean{Value: false}
 
 	builtins = map[string]*object.Builtin{
-		"len":   {Function: builtinLen},
-		"pop":   {Function: builtinPop},
-		"type":  {Function: builtinType},
-		"push":  {Function: builtinPush},
-		"slice": {Function: builtinSlice},
-		"print": {Function: builtinPrint},
+		"hex":     {Function: builtinHex},
+		"len":     {Function: builtinLen},
+		"pop":     {Function: builtinPop},
+		"type":    {Function: builtinType},
+		"push":    {Function: builtinPush},
+		"slice":   {Function: builtinSlice},
+		"print":   {Function: builtinPrint},
+		"map_set": {Function: builtinMapSet},
 	}
 )
 

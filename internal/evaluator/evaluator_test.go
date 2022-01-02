@@ -307,16 +307,20 @@ func TestBuiltinFunctions(t *testing.T) {
 		input    string
 		expected interface{}
 	}{
+		{`hex(255)`, "0xff"},
 		{`len("")`, 0},
 		{`len("ciao")`, 4},
 		{`type("ciao")`, object.StringObj},
 		{`type(1)`, object.IntegerObj},
 		{`type(1/0)`, object.ErrorObj},
 		{`type("ciao")`, object.StringObj},
+		{`type([])`, object.ArrayObj},
+		{`type({})`, object.MapObj},
+		{`type(type([]))`, object.TypeObj},
 		{`print("ciao")`, nil},
 		{`push([1, 2], 3)`, "[1, 2, 3]"},
 		{`pop([1, 2])`, "[1]"},
-		//{`len("test1", "test2")`, ""},
+		{`pop({1: 2, 3: 4}, 1)`, nil},
 	}
 
 	for _, testCase := range tests {
