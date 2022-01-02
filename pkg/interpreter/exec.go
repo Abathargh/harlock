@@ -28,8 +28,10 @@ func Exec(filename string, output io.Writer) []string {
 
 	evaluatedProg := evaluator.Eval(program, env)
 	if evaluatedProg != nil {
-		_, _ = io.WriteString(output, evaluatedProg.Inspect())
-		_, _ = io.WriteString(output, "\n")
+		if _, ok := evaluatedProg.(*object.Error); ok {
+			_, _ = io.WriteString(output, evaluatedProg.Inspect())
+			_, _ = io.WriteString(output, "\n")
+		}
 	}
 	return nil
 }

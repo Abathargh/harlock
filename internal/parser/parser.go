@@ -165,12 +165,7 @@ func (parser *Parser) parseVarStatement() *ast.VarStatement {
 
 	parser.nextToken()
 	statement.Value = parser.parseExpression(LOWEST)
-	for parser.current.Type != token.NEWLINE {
-		if parser.current.Type == token.EOF {
-			errMsg := fmt.Sprintf("unexpected %s", token.EOF)
-			parser.errors = append(parser.errors, errMsg)
-			return nil
-		}
+	for parser.current.Type != token.NEWLINE && parser.current.Type != token.EOF {
 		parser.nextToken()
 	}
 	return statement
@@ -482,12 +477,12 @@ func (parser *Parser) peekPrecedence() Priority {
 }
 
 func (parser *Parser) peekError(t token.TokenType) {
-	errMsg := fmt.Sprintf("expected token of type %s, got %s", t, parser.peeked.Type)
+	errMsg := fmt.Sprintf("expected token of type %q, got %q", t, parser.peeked.Type)
 	parser.errors = append(parser.errors, errMsg)
 }
 
 func (parser *Parser) noPrefixParseFunctionError(t token.TokenType) {
-	errMsg := fmt.Sprintf("cannot parse prefix operator %s", t)
+	errMsg := fmt.Sprintf("cannot parse prefix operator %q", t)
 	parser.errors = append(parser.errors, errMsg)
 }
 

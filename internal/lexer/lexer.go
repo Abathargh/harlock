@@ -1,6 +1,7 @@
 package lexer
 
 import (
+	"fmt"
 	"io"
 	"strings"
 	"unicode"
@@ -36,7 +37,13 @@ func (lexer *Lexer) NextToken() token.Token {
 	case '\'':
 		fallthrough
 	case '"':
-		t = token.Token{Type: token.STR, Literal: lexer.readString()}
+		// TODO customize token for error e.g. token.NODELIMITER and catch
+		// TODO it in the parser with custom err msg
+		str, err := lexer.readString()
+		if err != nil {
+			return token.Token{Type: token.ILLEGAL, Literal: string(lexer.char)}
+		}
+		t = token.Token{Type: token.STR, Literal: str}
 	case '+':
 		t = token.Token{Type: token.PLUS, Literal: string(lexer.char)}
 	case '-':
@@ -174,7 +181,7 @@ func (lexer *Lexer) readRune() {
 	lexer.char = 0
 }
 
-func (lexer *Lexer) readString() string {
+func (lexer *Lexer) readString() (string, error) {
 	// TODO add char escaping
 	var buf strings.Builder
 	quoteType := lexer.char
@@ -182,7 +189,10 @@ func (lexer *Lexer) readString() string {
 	for ; lexer.char != quoteType && lexer.char != 0; lexer.readRune() {
 		buf.WriteRune(lexer.char)
 	}
-	return buf.String()
+	if lexer.char == 0 {
+		return "", fmt.Errorf("quote delimiter not found")
+	}
+	return buf.String(), nil
 }
 
 func (lexer *Lexer) peekRune() rune {

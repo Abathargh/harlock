@@ -24,7 +24,7 @@ func Start(input io.Reader, output io.Writer) {
 			return
 		}
 
-		line := scanner.Text() + "\n"
+		line := scanner.Text()
 		l := lexer.NewLexer(bufio.NewReader(bytes.NewBufferString(line)))
 		p := parser.NewParser(l)
 		program := p.ParseProgram()
