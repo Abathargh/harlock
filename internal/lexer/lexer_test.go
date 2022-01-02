@@ -19,7 +19,8 @@ if ret false true else
 != == <= >= % >> << && || 0xFF
 "long string with text"
 'string with single quote'
-[1, 2, "ciao"]`
+[1, 2, "ciao"]
+{"key": "val"}`
 	tests := []struct {
 		expectedType    token.TokenType
 		expectedLiteral string
@@ -102,6 +103,13 @@ if ret false true else
 		{token.COMMA, ","},
 		{token.STR, "ciao"},
 		{token.RBRACK, "]"},
+		{token.NEWLINE, "\n"},
+
+		{token.LBRACE, "{"},
+		{token.STR, "key"},
+		{token.COLON, ":"},
+		{token.STR, "val"},
+		{token.RBRACE, "}"},
 		{token.EOF, ""},
 	}
 

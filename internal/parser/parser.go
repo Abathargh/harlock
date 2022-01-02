@@ -83,6 +83,7 @@ func NewParser(lex *lexer.Lexer) *Parser {
 	p.registerPrefix(token.STR, p.parseStringLiteral)
 
 	p.registerPrefix(token.LBRACK, p.parseArrayLiteral)
+	p.registerPrefix(token.LBRACE, p.parseMapLiteral)
 
 	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
 	p.registerPrefix(token.RPAREN, p.parseGroupedExpression)
@@ -262,6 +263,41 @@ func (parser *Parser) parseStringLiteral() ast.Expression {
 
 func (parser *Parser) parseArrayLiteral() ast.Expression {
 	return &ast.ArrayLiteral{Token: parser.current, Elements: parser.parseExpressionList(token.RBRACK)}
+}
+
+func (parser *Parser) parseMapLiteral() ast.Expression {
+	mapLiteral := &ast.MapLiteral{
+		Token:    parser.current,
+		Mappings: make(map[ast.Expression]ast.Expression),
+	}
+
+	for parser.peeked.Type != token.RBRACE {
+		if !parser.skipNewline() {
+			errMsg := fmt.Sprintf("unexpected %s", token.EOF)
+			parser.errors = append(parser.errors, errMsg)
+			return nil
+		}
+
+		parser.nextToken()
+		currentKey := parser.parseExpression(LOWEST)
+		if !parser.expectPeek(token.COLON) {
+			// TODO add error ?
+			return nil
+		}
+
+		parser.nextToken()
+		currentVal := parser.parseExpression(LOWEST)
+		mapLiteral.Mappings[currentKey] = currentVal
+		if (parser.peeked.Type != token.RBRACE && !parser.expectPeek(token.COMMA)) || !parser.skipNewline() {
+			// TODO add error ?
+			return nil
+		}
+	}
+	if !parser.expectPeek(token.RBRACE) {
+		// TODO add error ?
+		return nil
+	}
+	return mapLiteral
 }
 
 func (parser *Parser) parseNewlineRow() ast.Statement {
@@ -466,4 +502,14 @@ func (parser *Parser) registerPrefix(t token.TokenType, fn prefixParseFn) {
 
 func (parser *Parser) registerInfix(t token.TokenType, fn infixParseFn) {
 	parser.infixParseFns[t] = fn
+}
+
+func (parser *Parser) skipNewline() bool {
+	for parser.peeked.Type == token.NEWLINE {
+		if parser.peeked.Type == token.EOF {
+			return false
+		}
+		parser.nextToken()
+	}
+	return true
 }

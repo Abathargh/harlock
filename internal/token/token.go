@@ -42,6 +42,7 @@ const (
 	LOGICOR  = "||"
 
 	COMMA   = ","
+	COLON   = ":"
 	ESCAPE  = "\\"
 	NEWLINE = "\n"
 

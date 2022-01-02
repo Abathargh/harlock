@@ -89,6 +89,8 @@ func (lexer *Lexer) NextToken() token.Token {
 		t = token.Token{Type: token.REV, Literal: string(lexer.char)}
 	case ',':
 		t = token.Token{Type: token.COMMA, Literal: string(lexer.char)}
+	case ':':
+		t = token.Token{Type: token.COLON, Literal: string(lexer.char)}
 	case '\n':
 		t = token.Token{Type: token.NEWLINE, Literal: string(lexer.char)}
 	case '(':

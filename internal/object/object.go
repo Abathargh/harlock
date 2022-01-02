@@ -2,6 +2,7 @@ package object
 
 import (
 	"fmt"
+	"hash/fnv"
 	"strings"
 
 	"github.com/Abathargh/harlock/internal/ast"
@@ -12,6 +13,7 @@ type ObjectType string
 const (
 	NullObj        = "NULL"
 	TypeObj        = "Type"
+	MapObj         = "Map"
 	ErrorObj       = "ERROR"
 	ArrayObj       = "ARRAY"
 	StringObj      = "STRING"
@@ -29,6 +31,15 @@ type Object interface {
 	Inspect() string
 }
 
+type Hashable interface {
+	HashKey() HashKey
+}
+
+type HashKey struct {
+	Type  ObjectType
+	Value uint64
+}
+
 type Integer struct {
 	Value int64
 }
@@ -41,6 +52,10 @@ func (i *Integer) Inspect() string {
 	return fmt.Sprintf("%d", i.Value)
 }
 
+func (i *Integer) HashKey() HashKey {
+	return HashKey{Type: IntegerObj, Value: uint64(i.Value)}
+}
+
 type Boolean struct {
 	Value bool
 }
@@ -51,6 +66,13 @@ func (b *Boolean) Type() ObjectType {
 
 func (b *Boolean) Inspect() string {
 	return fmt.Sprintf("%t", b.Value)
+}
+
+func (b *Boolean) HashKey() HashKey {
+	if b.Value {
+		return HashKey{Type: BooleanObj, Value: 1}
+	}
+	return HashKey{Type: BooleanObj, Value: 0}
 }
 
 type Null struct{}
@@ -127,6 +149,12 @@ func (str *String) Inspect() string {
 	return str.Value
 }
 
+func (str *String) HashKey() HashKey {
+	hash := fnv.New64a()
+	_, _ = hash.Write([]byte(str.Value))
+	return HashKey{Type: StringObj, Value: hash.Sum64()}
+}
+
 type Builtin struct {
 	Function BuiltinFunction
 }
@@ -169,5 +197,32 @@ func (arr *Array) Inspect() string {
 	buf.WriteString("[")
 	buf.WriteString(strings.Join(elements, ", "))
 	buf.WriteString("]")
+	return buf.String()
+}
+
+type HashPair struct {
+	Key   Object
+	Value Object
+}
+
+type Map struct {
+	Mappings map[HashKey]HashPair
+}
+
+func (h *Map) Type() ObjectType {
+	return MapObj
+}
+
+func (h *Map) Inspect() string {
+	var buf strings.Builder
+	var mappings []string
+	for _, mapping := range h.Mappings {
+		mappings = append(mappings,
+			fmt.Sprintf("%s: %s", mapping.Key.Inspect(), mapping.Value.Inspect()))
+	}
+
+	buf.WriteString("{")
+	buf.WriteString(strings.Join(mappings, ", "))
+	buf.WriteString("}")
 	return buf.String()
 }

@@ -1,6 +1,7 @@
 package ast
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/Abathargh/harlock/internal/token"
@@ -366,5 +367,29 @@ func (ie *IndexExpression) String() string {
 	buf.WriteString("[")
 	buf.WriteString(ie.Index.String())
 	buf.WriteString("]")
+	return buf.String()
+}
+
+type MapLiteral struct {
+	Token    token.Token
+	Mappings map[Expression]Expression
+}
+
+func (hl *MapLiteral) expressionNode() {}
+
+func (hl *MapLiteral) TokenLiteral() string {
+	return hl.Token.Literal
+}
+
+func (hl *MapLiteral) String() string {
+	var buf strings.Builder
+	var mappings []string
+	for key, val := range hl.Mappings {
+		mappings = append(mappings, fmt.Sprintf("%s: %s", key.String(), val.String()))
+	}
+
+	buf.WriteString("{")
+	buf.WriteString(strings.Join(mappings, ", "))
+	buf.WriteString("}")
 	return buf.String()
 }

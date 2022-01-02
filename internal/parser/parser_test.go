@@ -573,6 +573,95 @@ func TestIndexExpression(t *testing.T) {
 	}
 }
 
+func TestMapLiteralParsing(t *testing.T) {
+	input := `{"test": 6, "tests": 7}`
+	expected := map[string]int64{
+		"test":  6,
+		"tests": 7,
+	}
+
+	lex := lexer.NewLexer(bufio.NewReader(bytes.NewBufferString(input)))
+	p := NewParser(lex)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	statement := program.Statements[0].(*ast.ExpressionStatement)
+	mapLiteral, ok := statement.Expression.(*ast.MapLiteral)
+	if !ok {
+		t.Fatalf("Expected the statement to have MapLiteral type, got %T", statement.Expression)
+	}
+
+	if len(mapLiteral.Mappings) != 2 {
+		t.Fatalf("expected 2 elements, got %d", len(mapLiteral.Mappings))
+	}
+
+	for key, val := range mapLiteral.Mappings {
+		strKey, ok := key.(*ast.StringLiteral)
+		if !ok {
+			t.Fatalf("Expected key to have string type, got %T", key)
+		}
+		testIntegerLiteral(t, val, expected[strKey.Value])
+	}
+}
+
+func TestEmptyMapLiteralParsing(t *testing.T) {
+	input := `{}`
+
+	lex := lexer.NewLexer(bufio.NewReader(bytes.NewBufferString(input)))
+	p := NewParser(lex)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	statement := program.Statements[0].(*ast.ExpressionStatement)
+	mapLiteral, ok := statement.Expression.(*ast.MapLiteral)
+	if !ok {
+		t.Fatalf("Expected the statement to have MapLiteral type, got %T", statement.Expression)
+	}
+
+	if len(mapLiteral.Mappings) != 0 {
+		t.Fatalf("expected 0 elements, got %d", len(mapLiteral.Mappings))
+	}
+}
+
+func TestMapLiteralParsingWithExpressions(t *testing.T) {
+	input := `{"first":  1 + 2, "second": 3 & 4}`
+	expectedTests := map[string]func(expression ast.Expression){
+		"first": func(expression ast.Expression) {
+			testInfixExpression(t, expression, 1, "+", 2)
+		},
+		"second": func(expression ast.Expression) {
+			testInfixExpression(t, expression, 3, "&", 4)
+		},
+	}
+
+	lex := lexer.NewLexer(bufio.NewReader(bytes.NewBufferString(input)))
+	p := NewParser(lex)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	statement := program.Statements[0].(*ast.ExpressionStatement)
+	mapLiteral, ok := statement.Expression.(*ast.MapLiteral)
+	if !ok {
+		t.Fatalf("Expected the statement to have MapLiteral type, got %T", statement.Expression)
+	}
+
+	if len(mapLiteral.Mappings) != 2 {
+		t.Fatalf("expected 2 elements, got %d", len(mapLiteral.Mappings))
+	}
+
+	for key, val := range mapLiteral.Mappings {
+		strKey, ok := key.(*ast.StringLiteral)
+		if !ok {
+			t.Fatalf("expected string key, got %T", key)
+		}
+		testFunction, ok := expectedTests[strKey.String()]
+		if !ok {
+			t.Fatalf("expected function for key %s, not found", strKey.String())
+		}
+		testFunction(val)
+	}
+}
+
 func testIntegerLiteral(t *testing.T, rightExpression ast.Expression, integerValue int64) bool {
 	integerExprValue, ok := rightExpression.(*ast.IntegerLiteral)
 	if !ok {

@@ -372,6 +372,66 @@ func TestArrayIndexExpressions(t *testing.T) {
 	}
 }
 
+func TestMapLiterals(t *testing.T) {
+	input := `var test = 22
+{
+	"test1": 20 * 2,
+	"test2": 2 & 3,
+	"tes"+"t3": 4,
+	test: 22,	
+	true: 1,
+	false: 0,
+}`
+	expected := map[object.HashKey]int64{
+		(&object.String{Value: "test1"}).HashKey(): 40,
+		(&object.String{Value: "test2"}).HashKey(): 2,
+		(&object.String{Value: "test3"}).HashKey(): 4,
+		(&object.Integer{Value: 22}).HashKey():     22,
+		TRUE.HashKey():                             1,
+		FALSE.HashKey():                            0,
+	}
+
+	evaluated := testEval(input)
+	mapObj, ok := evaluated.(*object.Map)
+	if !ok {
+		t.Fatalf("expected object of Map type, got %T", evaluated)
+	}
+
+	if len(mapObj.Mappings) != len(expected) {
+		t.Fatalf("expected %d elements, got %d", len(expected), len(mapObj.Mappings))
+	}
+
+	for expKey, expVal := range expected {
+		mapping, ok := mapObj.Mappings[expKey]
+		if !ok {
+			t.Errorf("expected key %+v to be present in the map", expKey)
+		}
+		testIntegerObject(t, mapping.Value, expVal)
+	}
+}
+
+func TestMapIndexExpressions(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected interface{}
+	}{
+		{`{"test": 2}["test"]`, 2},
+		{`{10: 3}[10]`, 3},
+		{`{true: 4}[true]`, 4},
+		// TODO Errors
+	}
+
+	for _, testCase := range tests {
+		arrayIndexExpr := testEval(testCase.input)
+		expectedIntValue, isInt := testCase.expected.(int)
+		if isInt {
+			testIntegerObject(t, arrayIndexExpr, int64(expectedIntValue))
+		} else {
+			testNullObject(t, arrayIndexExpr)
+		}
+	}
+}
+
 func testEval(input string) object.Object {
 	l := lexer.NewLexer(bufio.NewReader(bytes.NewBufferString(input)))
 	p := parser.NewParser(l)

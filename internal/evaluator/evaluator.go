@@ -103,6 +103,8 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 			return index
 		}
 		return evalIndexExpression(left, index)
+	case *ast.MapLiteral:
+		return evalMapLiteral(currentNode, env)
 	}
 	return nil
 }
@@ -352,10 +354,14 @@ func evalExpressions(expressions []ast.Expression, env *object.Environment) []ob
 }
 
 func evalIndexExpression(indexed, index object.Object) object.Object {
-	if indexed.Type() == object.ArrayObj && index.Type() == object.IntegerObj {
+	switch {
+	case indexed.Type() == object.ArrayObj && index.Type() == object.IntegerObj:
 		return evalArrayIndexExpression(indexed, index)
+	case indexed.Type() == object.MapObj:
+		return evalMapIndexExpression(indexed, index)
+	default:
+		return newError("the index used to access an array must be an integer")
 	}
-	return newError("the index used to access an array must be an integer")
 }
 
 func evalArrayIndexExpression(array, index object.Object) object.Object {
@@ -368,6 +374,46 @@ func evalArrayIndexExpression(array, index object.Object) object.Object {
 		return NULL
 	}
 	return arrayObject.Elements[idx]
+}
+
+func evalMapIndexExpression(hashmap, index object.Object) object.Object {
+	mapObject := hashmap.(*object.Map)
+	key, isHashable := index.(object.Hashable)
+	if !isHashable {
+		return newError("type error: index is not hashable")
+	}
+
+	pair, ok := mapObject.Mappings[key.HashKey()]
+	if !ok {
+		// element is not present, default is null for now
+		return NULL
+	}
+	return pair.Value
+}
+
+func evalMapLiteral(mapLiteral *ast.MapLiteral, env *object.Environment) object.Object {
+	mappings := make(map[object.HashKey]object.HashPair)
+
+	for keyNode, valueNode := range mapLiteral.Mappings {
+		key := Eval(keyNode, env)
+		if isError(key) {
+			return key
+		}
+
+		hashKey, ok := key.(object.Hashable)
+		if !ok {
+			return newError("the passed key is not an hashable object")
+		}
+
+		value := Eval(valueNode, env)
+		if isError(key) {
+			return key
+		}
+
+		hashedValue := hashKey.HashKey()
+		mappings[hashedValue] = object.HashPair{Key: key, Value: value}
+	}
+	return &object.Map{Mappings: mappings}
 }
 
 func callFunction(funcObj object.Object, args []object.Object) object.Object {
