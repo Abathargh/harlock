@@ -323,3 +323,48 @@ func (sl *StringLiteral) TokenLiteral() string {
 func (sl *StringLiteral) String() string {
 	return sl.Token.Literal
 }
+
+type ArrayLiteral struct {
+	Token    token.Token
+	Elements []Expression
+}
+
+func (al *ArrayLiteral) expressionNode() {}
+
+func (al *ArrayLiteral) TokenLiteral() string {
+	return al.Token.Literal
+}
+
+func (al *ArrayLiteral) String() string {
+	var buf strings.Builder
+	var elements []string
+	for _, elem := range al.Elements {
+		elements = append(elements, elem.String())
+	}
+
+	buf.WriteString("[")
+	buf.WriteString(strings.Join(elements, ", "))
+	buf.WriteString("]")
+	return buf.String()
+}
+
+type IndexExpression struct {
+	Token token.Token
+	Left  Expression
+	Index Expression
+}
+
+func (ie *IndexExpression) expressionNode() {}
+
+func (ie *IndexExpression) TokenLiteral() string {
+	return ie.Token.Literal
+}
+
+func (ie *IndexExpression) String() string {
+	var buf strings.Builder
+	buf.WriteString(ie.Left.String())
+	buf.WriteString("[")
+	buf.WriteString(ie.Index.String())
+	buf.WriteString("]")
+	return buf.String()
+}

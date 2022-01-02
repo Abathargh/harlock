@@ -95,6 +95,10 @@ func (lexer *Lexer) NextToken() token.Token {
 		t = token.Token{Type: token.LPAREN, Literal: string(lexer.char)}
 	case ')':
 		t = token.Token{Type: token.RPAREN, Literal: string(lexer.char)}
+	case '[':
+		t = token.Token{Type: token.LBRACK, Literal: string(lexer.char)}
+	case ']':
+		t = token.Token{Type: token.RBRACK, Literal: string(lexer.char)}
 	case '{':
 		t = token.Token{Type: token.LBRACE, Literal: string(lexer.char)}
 	case '}':

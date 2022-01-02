@@ -24,6 +24,7 @@ const (
 	PRODUCT
 	PREFIX
 	CALL
+	INDEX
 )
 
 var priorities = map[token.TokenType]Priority{
@@ -46,6 +47,7 @@ var priorities = map[token.TokenType]Priority{
 	token.DIV:       PRODUCT,
 	token.MOD:       PRODUCT,
 	token.LPAREN:    CALL,
+	token.LBRACK:    INDEX,
 }
 
 type (
@@ -80,6 +82,8 @@ func NewParser(lex *lexer.Lexer) *Parser {
 
 	p.registerPrefix(token.STR, p.parseStringLiteral)
 
+	p.registerPrefix(token.LBRACK, p.parseArrayLiteral)
+
 	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
 	p.registerPrefix(token.RPAREN, p.parseGroupedExpression)
 
@@ -88,6 +92,7 @@ func NewParser(lex *lexer.Lexer) *Parser {
 	p.registerPrefix(token.REV, p.parsePrefixExpression)
 
 	p.registerInfix(token.LPAREN, p.parseCallExpression)
+	p.registerInfix(token.LBRACK, p.parseIndexExpression)
 
 	p.registerInfix(token.LOGICOR, p.parseInfixExpression)
 	p.registerInfix(token.LOGICAND, p.parseInfixExpression)
@@ -160,6 +165,11 @@ func (parser *Parser) parseVarStatement() *ast.VarStatement {
 	parser.nextToken()
 	statement.Value = parser.parseExpression(LOWEST)
 	for parser.current.Type != token.NEWLINE {
+		if parser.current.Type == token.EOF {
+			errMsg := fmt.Sprintf("unexpected %s", token.EOF)
+			parser.errors = append(parser.errors, errMsg)
+			return nil
+		}
 		parser.nextToken()
 	}
 	return statement
@@ -177,6 +187,11 @@ func (parser *Parser) parseReturnStatement() *ast.ReturnStatement {
 	statement.ReturnValue = parser.parseExpression(LOWEST)
 	for parser.current.Type != token.NEWLINE &&
 		(parser.peeked.Type != token.RBRACE && parser.peeked.Type != token.NEWLINE) {
+		if parser.current.Type == token.EOF {
+			errMsg := fmt.Sprintf("unexpected %s", token.EOF)
+			parser.errors = append(parser.errors, errMsg)
+			return nil
+		}
 		parser.nextToken()
 	}
 	return statement
@@ -245,6 +260,10 @@ func (parser *Parser) parseStringLiteral() ast.Expression {
 	return &ast.StringLiteral{Token: parser.current, Value: parser.current.Literal}
 }
 
+func (parser *Parser) parseArrayLiteral() ast.Expression {
+	return &ast.ArrayLiteral{Token: parser.current, Elements: parser.parseExpressionList(token.RBRACK)}
+}
+
 func (parser *Parser) parseNewlineRow() ast.Statement {
 	return nil
 }
@@ -299,9 +318,20 @@ func (parser *Parser) parseCallExpression(function ast.Expression) ast.Expressio
 		Token:    parser.current,
 		Function: function,
 	}
-	callExpression.Arguments = parser.parseCallParameters()
+	callExpression.Arguments = parser.parseExpressionList(token.RPAREN)
 
 	return callExpression
+}
+
+func (parser *Parser) parseIndexExpression(array ast.Expression) ast.Expression {
+	indexExpression := &ast.IndexExpression{Token: parser.current, Left: array}
+	parser.nextToken()
+	indexExpression.Index = parser.parseExpression(LOWEST)
+
+	if !parser.expectPeek(token.RBRACK) {
+		return nil
+	}
+	return indexExpression
 }
 
 func (parser *Parser) parsePrefixExpression() ast.Expression {
@@ -371,9 +401,9 @@ func (parser *Parser) parseFunctionParameters() []*ast.Identifier {
 	return parameters
 }
 
-func (parser *Parser) parseCallParameters() []ast.Expression {
+func (parser *Parser) parseExpressionList(terminator token.TokenType) []ast.Expression {
 	var parameters []ast.Expression
-	if parser.peeked.Type == token.RPAREN {
+	if parser.peeked.Type == terminator {
 		parser.nextToken()
 		return parameters
 	}
@@ -386,7 +416,7 @@ func (parser *Parser) parseCallParameters() []ast.Expression {
 		parameters = append(parameters, parser.parseExpression(LOWEST))
 	}
 
-	if !parser.expectPeek(token.RPAREN) {
+	if !parser.expectPeek(terminator) {
 		return nil
 	}
 	return parameters

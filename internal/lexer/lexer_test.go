@@ -18,7 +18,8 @@ fun f(a, b) {
 if ret false true else
 != == <= >= % >> << && || 0xFF
 "long string with text"
-'string with single quote'`
+'string with single quote'
+[1, 2, "ciao"]`
 	tests := []struct {
 		expectedType    token.TokenType
 		expectedLiteral string
@@ -92,6 +93,15 @@ if ret false true else
 		{token.STR, "long string with text"},
 		{token.NEWLINE, "\n"},
 		{token.STR, "string with single quote"},
+		{token.NEWLINE, "\n"},
+
+		{token.LBRACK, "["},
+		{token.INT, "1"},
+		{token.COMMA, ","},
+		{token.INT, "2"},
+		{token.COMMA, ","},
+		{token.STR, "ciao"},
+		{token.RBRACK, "]"},
 		{token.EOF, ""},
 	}
 

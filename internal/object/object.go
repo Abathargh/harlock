@@ -13,6 +13,7 @@ const (
 	NullObj        = "NULL"
 	TypeObj        = "Type"
 	ErrorObj       = "ERROR"
+	ArrayObj       = "ARRAY"
 	StringObj      = "STRING"
 	IntegerObj     = "INTEGER"
 	BooleanObj     = "BOOLEAN"
@@ -148,4 +149,25 @@ func (t *Type) Type() ObjectType {
 
 func (t *Type) Inspect() string {
 	return fmt.Sprintf("%s", t.Value)
+}
+
+type Array struct {
+	Elements []Object
+}
+
+func (arr *Array) Type() ObjectType {
+	return ArrayObj
+}
+
+func (arr *Array) Inspect() string {
+	var buf strings.Builder
+	var elements []string
+	for _, element := range arr.Elements {
+		elements = append(elements, element.Inspect())
+	}
+
+	buf.WriteString("[")
+	buf.WriteString(strings.Join(elements, ", "))
+	buf.WriteString("]")
+	return buf.String()
 }

@@ -15,6 +15,8 @@ var (
 	builtins = map[string]*object.Builtin{
 		"len":   {Function: builtinLen},
 		"type":  {Function: builtinType},
+		"push":  {Function: builtinPush},
+		"slice": {Function: builtinSlice},
 		"print": {Function: builtinPrint},
 	}
 )
@@ -84,6 +86,22 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 			return args[0]
 		}
 		return callFunction(functionCall, args)
+	case *ast.ArrayLiteral:
+		elements := evalExpressions(currentNode.Elements, env)
+		if len(elements) == 1 && isError(elements[0]) {
+			return elements[0]
+		}
+		return &object.Array{Elements: elements}
+	case *ast.IndexExpression:
+		left := Eval(currentNode.Left, env)
+		if isError(left) {
+			return left
+		}
+		index := Eval(currentNode.Index, env)
+		if isError(index) {
+			return index
+		}
+		return evalIndexExpression(left, index)
 	}
 	return nil
 }
@@ -99,7 +117,7 @@ func evalProgram(program *ast.Program, env *object.Environment) object.Object {
 			return actualResult
 		}
 	}
-	return nil
+	return result
 }
 
 func evalPrefixExpression(operator string, right object.Object) object.Object {
@@ -313,6 +331,25 @@ func evalExpressions(expressions []ast.Expression, env *object.Environment) []ob
 		evaluatedExpressions = append(evaluatedExpressions, evaluatedExpr)
 	}
 	return evaluatedExpressions
+}
+
+func evalIndexExpression(indexed, index object.Object) object.Object {
+	if indexed.Type() == object.ArrayObj && index.Type() == object.IntegerObj {
+		return evalArrayIndexExpression(indexed, index)
+	}
+	return newError("the index used to access an array must be an integer")
+}
+
+func evalArrayIndexExpression(array, index object.Object) object.Object {
+	arrayObject := array.(*object.Array)
+	idx := index.(*object.Integer).Value
+	maxIdx := int64(len(arrayObject.Elements) - 1)
+
+	if idx < 0 || idx > maxIdx {
+		// TODO return error, not NULL
+		return NULL
+	}
+	return arrayObject.Elements[idx]
 }
 
 func callFunction(funcObj object.Object, args []object.Object) object.Object {

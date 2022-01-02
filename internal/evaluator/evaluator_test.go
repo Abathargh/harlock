@@ -327,6 +327,48 @@ func TestBuiltinFunctions(t *testing.T) {
 	}
 }
 
+func TestArrayLiterals(t *testing.T) {
+	input := `[5, 5 % 4, 6 & 2]`
+
+	arrayObj := testEval(input)
+	arrayLiteral, ok := arrayObj.(*object.Array)
+	if !ok {
+		t.Fatalf("expected object of Array type, got %T", arrayObj)
+	}
+
+	if len(arrayLiteral.Elements) != 3 {
+		t.Fatalf("expected 3 elements, got %d", len(arrayLiteral.Elements))
+	}
+
+	testIntegerObject(t, arrayLiteral.Elements[0], 5)
+	testIntegerObject(t, arrayLiteral.Elements[1], 1)
+	testIntegerObject(t, arrayLiteral.Elements[2], 2)
+}
+
+func TestArrayIndexExpressions(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected interface{}
+	}{
+		{"[1][0]", 1},
+		{"[1, 2, 4][1 + 1]", 4},
+		{`[0xfe, "ciao", 12][2]`, 12},
+		{"var arr = [2, 5, 1]\narr[1]", 5},
+		{"var add = fun(x,y){ ret x+y }\n[2, add(3, 4), 3][1]", 7},
+		// TODO Errors
+	}
+
+	for _, testCase := range tests {
+		arrayIndexExpr := testEval(testCase.input)
+		expectedIntValue, isInt := testCase.expected.(int)
+		if isInt {
+			testIntegerObject(t, arrayIndexExpr, int64(expectedIntValue))
+		} else {
+			testNullObject(t, arrayIndexExpr)
+		}
+	}
+}
+
 func testEval(input string) object.Object {
 	l := lexer.NewLexer(bufio.NewReader(bytes.NewBufferString(input)))
 	p := parser.NewParser(l)
@@ -364,7 +406,7 @@ func testBooleanObject(t *testing.T, obj object.Object, expected bool) bool {
 }
 
 func testNullObject(t *testing.T, obj object.Object) bool {
-	if obj != NULL {
+	if obj != nil {
 		t.Errorf("expected null, got %T", obj)
 		return false
 	}

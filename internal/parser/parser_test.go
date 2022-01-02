@@ -19,6 +19,7 @@ func TestVarStatements(t *testing.T) {
 		{"var x = 5\n", "x", 5},
 		{"var test = true\n", "test", true},
 		{"var test2 = y\n", "test2", "y"},
+		{"var test2 = y\n", "test2", "y"},
 	}
 	for _, testCase := range tests {
 		lex := lexer.NewLexer(bufio.NewReader(bytes.NewBufferString(testCase.input)))
@@ -289,6 +290,8 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 		{"(a | b) & (c | d)", "((a|b)&(c|d))"},
 		{"(a | b) & (c | d) * add(b | c)", "((a|b)&((c|d)*add((b|c))))"},
 		{"a | b && c | d ", "((a|b)&&(c|d))"},
+		{"a * [1,2,5][2*1] / 2 ", "((a*[1, 2, 5][(2*1)])/2)"},
+		{"call(2 * a[2], 3 + a[3])", "call((2*a[2]), (3+a[3]))"},
 	}
 
 	for _, testCase := range tests {
@@ -522,6 +525,51 @@ func TestStringLiteralExpression(t *testing.T) {
 
 	if stringLiteral.Value != expected {
 		t.Errorf("expected %s, got %s", expected, stringLiteral.Value)
+	}
+}
+func TestArrayLiteralExpression(t *testing.T) {
+	input := `[2, 4 % 5, 4 | 2]`
+
+	lex := lexer.NewLexer(bufio.NewReader(bytes.NewBufferString(input)))
+	p := NewParser(lex)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	statement := program.Statements[0].(*ast.ExpressionStatement)
+	arrayLiteral, ok := statement.Expression.(*ast.ArrayLiteral)
+	if !ok {
+		t.Errorf("Expected the statement to have ArrayLiteral type, got %T", statement.Expression)
+	}
+
+	if len(arrayLiteral.Elements) != 3 {
+		t.Errorf("expected 3 elements, got %d", len(arrayLiteral.Elements))
+	}
+
+	testIntegerLiteral(t, arrayLiteral.Elements[0], 2)
+	testInfixExpression(t, arrayLiteral.Elements[1], 4, "%", 5)
+	testInfixExpression(t, arrayLiteral.Elements[2], 4, "|", 2)
+}
+
+func TestIndexExpression(t *testing.T) {
+	input := `arr[4 % 5]`
+
+	lex := lexer.NewLexer(bufio.NewReader(bytes.NewBufferString(input)))
+	p := NewParser(lex)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	statement := program.Statements[0].(*ast.ExpressionStatement)
+	indexExpression, ok := statement.Expression.(*ast.IndexExpression)
+	if !ok {
+		t.Fatalf("Expected the statement to have IndexExpression type, got %T", statement.Expression)
+	}
+
+	if !testIdentifier(t, indexExpression.Left, "arr") {
+		return
+	}
+
+	if !testInfixExpression(t, indexExpression.Index, 4, "%", 5) {
+		return
 	}
 }
 
