@@ -51,7 +51,11 @@ func (lexer *Lexer) NextToken() token.Token {
 	case '*':
 		t = token.Token{Type: token.MUL, Literal: string(lexer.char)}
 	case '/':
-		t = token.Token{Type: token.DIV, Literal: string(lexer.char)}
+		peekedRune := lexer.peekRune()
+		if peekedRune == '/' {
+			lexer.skipComment()
+		}
+		t = token.Token{Type: token.NEWLINE, Literal: "\n"}
 	case '%':
 		t = token.Token{Type: token.MOD, Literal: string(lexer.char)}
 	case '<':
@@ -206,6 +210,12 @@ func (lexer *Lexer) peekRune() rune {
 
 func (lexer *Lexer) skipWhitespace() {
 	for lexer.char == ' ' || lexer.char == '\t' || lexer.char == '\r' {
+		lexer.readRune()
+	}
+}
+
+func (lexer *Lexer) skipComment() {
+	for lexer.char != '\n' && lexer.char != 0 {
 		lexer.readRune()
 	}
 }
