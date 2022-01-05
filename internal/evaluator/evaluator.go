@@ -2,6 +2,8 @@ package evaluator
 
 import (
 	"fmt"
+	"math"
+	"strings"
 
 	"github.com/Abathargh/harlock/internal/ast"
 	"github.com/Abathargh/harlock/internal/object"
@@ -88,7 +90,7 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		if len(args) == 1 && isError(args[0]) {
 			return args[0]
 		}
-		return callFunction(functionCall, args)
+		return callFunction(currentNode.String(), functionCall, args)
 	case *ast.ArrayLiteral:
 		elements := evalExpressions(currentNode.Elements, env)
 		if len(elements) == 1 && isError(elements[0]) {
@@ -214,7 +216,20 @@ func evalBitwiseNotExpression(right object.Object) object.Object {
 	}
 
 	intValue := right.(*object.Integer).Value
-	return &object.Integer{Value: ^intValue}
+	var invertedValue int64
+	switch {
+	case intValue < 0:
+		invertedValue = ^intValue
+	case intValue >= 0 && intValue <= math.MaxUint8:
+		invertedValue = int64(^uint8(intValue))
+	case intValue > math.MaxUint8 && intValue <= math.MaxUint16:
+		invertedValue = int64(^uint16(intValue))
+	case intValue > math.MaxUint16 && intValue <= math.MaxUint32:
+		invertedValue = int64(^uint32(intValue))
+	default:
+		invertedValue = ^intValue
+	}
+	return &object.Integer{Value: invertedValue}
 }
 
 func evalIntegerInfixExpression(operator string, left, right object.Object) object.Object {
@@ -418,17 +433,25 @@ func evalMapLiteral(mapLiteral *ast.MapLiteral, env *object.Environment) object.
 	return &object.Map{Mappings: mappings}
 }
 
-func callFunction(funcObj object.Object, args []object.Object) object.Object {
+func callFunction(funcName string, funcObj object.Object, args []object.Object) object.Object {
 	switch function := funcObj.(type) {
 	case *object.Function:
-		functionEnv := extendFunctionEnvironment(function, args)
-		evaluatedFunction := Eval(function.Body, functionEnv)
-		return unwrapReturnValue(evaluatedFunction)
+		if validateFunctionCall(function, args) {
+			functionEnv := extendFunctionEnvironment(function, args)
+			evaluatedFunction := Eval(function.Body, functionEnv)
+			return unwrapReturnValue(evaluatedFunction)
+		}
+		nameOnly := funcName[:strings.Index(funcName, "(")]
+		return newError("type error: function %q was called with a wrong number of args", nameOnly)
 	case *object.Builtin:
 		return function.Function(args...)
 	default:
 		return newError("identifier is not a function: %s", funcObj.Type())
 	}
+}
+
+func validateFunctionCall(function *object.Function, args []object.Object) bool {
+	return len(function.Parameters) == len(args)
 }
 
 func extendFunctionEnvironment(function *object.Function, args []object.Object) *object.Environment {
