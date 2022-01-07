@@ -14,13 +14,16 @@ var test2 = 24
 fun f(a, b) {
 	var c = try div(a, b)
 }
-!|&^~-*</>
+!|&^~-/*<>
 if ret false true else
 != == <= >= % >> << && || 0xFF
 "long string with text"
 'string with single quote'
 [1, 2, "ciao"]
-{"key": "val"}`
+{"key": "val"}
+file.test()
+"\x55\X5a"
+"\u0056\u005b"`
 	tests := []struct {
 		expectedType    token.TokenType
 		expectedLiteral string
@@ -66,9 +69,9 @@ if ret false true else
 		{token.XOR, "^"},
 		{token.REV, "~"},
 		{token.MINUS, "-"},
+		{token.DIV, "/"},
 		{token.MUL, "*"},
 		{token.LESS, "<"},
-		{token.DIV, "/"},
 		{token.GREATER, ">"},
 		{token.NEWLINE, "\n"},
 
@@ -110,6 +113,19 @@ if ret false true else
 		{token.COLON, ":"},
 		{token.STR, "val"},
 		{token.RBRACE, "}"},
+		{token.NEWLINE, "\n"},
+
+		{token.IDENT, "file"},
+		{token.PERIOD, "."},
+		{token.IDENT, "test"},
+		{token.LPAREN, "("},
+		{token.RPAREN, ")"},
+		{token.NEWLINE, "\n"},
+
+		{token.STR, "UZ"},
+		{token.NEWLINE, "\n"},
+
+		{token.STR, "V["},
 		{token.EOF, ""},
 	}
 

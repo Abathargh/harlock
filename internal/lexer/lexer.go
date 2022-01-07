@@ -1,8 +1,8 @@
 package lexer
 
 import (
-	"fmt"
 	"io"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -10,15 +10,12 @@ import (
 )
 
 type Lexer struct {
-	input     io.RuneReader
-	position  int
-	wasPeeked bool
-	peeked    rune
-	char      rune
+	input io.RuneScanner
+	char  rune
 }
 
-func NewLexer(input io.RuneReader) *Lexer {
-	l := &Lexer{input: input, position: -1}
+func NewLexer(input io.RuneScanner) *Lexer {
+	l := &Lexer{input: input}
 	l.readRune()
 	return l
 }
@@ -37,11 +34,9 @@ func (lexer *Lexer) NextToken() token.Token {
 	case '\'':
 		fallthrough
 	case '"':
-		// TODO customize token for error e.g. token.NODELIMITER and catch
-		// TODO it in the parser with custom err msg
 		str, err := lexer.readString()
 		if err != nil {
-			return token.Token{Type: token.ILLEGAL, Literal: string(lexer.char)}
+			return token.Token{Type: token.ILLEGAL, Literal: err.Error()}
 		}
 		t = token.Token{Type: token.STR, Literal: str}
 	case '+':
@@ -54,8 +49,9 @@ func (lexer *Lexer) NextToken() token.Token {
 		peekedRune := lexer.peekRune()
 		if peekedRune == '/' {
 			lexer.skipComment()
+			return lexer.NextToken()
 		}
-		t = token.Token{Type: token.NEWLINE, Literal: "\n"}
+		t = token.Token{Type: token.DIV, Literal: "/"}
 	case '%':
 		t = token.Token{Type: token.MOD, Literal: string(lexer.char)}
 	case '<':
@@ -163,6 +159,7 @@ func (lexer *Lexer) readHexNumber() string {
 	buf.WriteRune(lexer.char)
 	lexer.readRune()
 
+	// TODO err if no hex digit
 	for isHexDigit(lexer.char) {
 		buf.WriteRune(lexer.char)
 		lexer.readRune()
@@ -171,13 +168,6 @@ func (lexer *Lexer) readHexNumber() string {
 }
 
 func (lexer *Lexer) readRune() {
-	lexer.position++
-	if lexer.wasPeeked {
-		lexer.wasPeeked = false
-		lexer.char = lexer.peeked
-		return
-	}
-
 	if r, _, err := lexer.input.ReadRune(); err == nil {
 		lexer.char = r
 		return
@@ -185,27 +175,34 @@ func (lexer *Lexer) readRune() {
 	lexer.char = 0
 }
 
+func (lexer *Lexer) peekRune() rune {
+	if r, _, err := lexer.input.ReadRune(); err == nil {
+		// no error check => called after read rune with no err
+		_ = lexer.input.UnreadRune()
+		return r
+	}
+	return 0
+}
+
 func (lexer *Lexer) readString() (string, error) {
-	// TODO add char escaping
 	var buf strings.Builder
 	quoteType := lexer.char
 	lexer.readRune()
 	for ; lexer.char != quoteType && lexer.char != 0; lexer.readRune() {
+		if lexer.char == '\\' {
+			esc, err := lexer.readEscapeChar()
+			if err != nil {
+				return "", err
+			}
+			buf.WriteRune(esc)
+			continue
+		}
 		buf.WriteRune(lexer.char)
 	}
 	if lexer.char == 0 {
-		return "", fmt.Errorf("quote delimiter not found")
+		return "", invalidString
 	}
 	return buf.String(), nil
-}
-
-func (lexer *Lexer) peekRune() rune {
-	if r, _, err := lexer.input.ReadRune(); err == nil {
-		lexer.peeked = r
-		lexer.wasPeeked = true
-		return lexer.peeked
-	}
-	return 0
 }
 
 func (lexer *Lexer) skipWhitespace() {
@@ -226,6 +223,44 @@ func (lexer *Lexer) buildTwoRuneOperator() string {
 	lexer.readRune()
 	buf[1] = lexer.char
 	return string(buf[:])
+}
+
+func (lexer *Lexer) readEscapeChar() (rune, error) {
+	lexer.NextToken()
+	switch lexer.char {
+	case '\\':
+		return '\\', nil
+	case 't':
+		return '\t', nil
+	case 'n':
+		return '\n', nil
+	case 'r':
+		return '\r', nil
+	case 'x', 'X':
+		hex := make([]rune, 2, 2)
+		for idx := range hex {
+			if !isHexDigit(lexer.peekRune()) {
+				return 0, invalidHex
+			}
+			lexer.readRune()
+			hex[idx] = lexer.char
+		}
+		val, _ := strconv.ParseInt(string(hex), 16, 64)
+		return rune(val), nil
+	case 'u', 'U':
+		uni := make([]rune, 4, 4)
+		for idx := range uni {
+			if !isHexDigit(lexer.peekRune()) {
+				return 0, invalidUni
+			}
+			lexer.readRune()
+			uni[idx] = lexer.char
+		}
+		val, _ := strconv.ParseInt(string(uni), 16, 64)
+		return rune(val), nil
+	default:
+		return 0, invalidEsc
+	}
 }
 
 func isDigit(r rune) bool {
