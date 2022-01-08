@@ -16,10 +16,10 @@ func TestVarStatements(t *testing.T) {
 		expectedIdentifier string
 		expectedValue      interface{}
 	}{
-		{"var x = 5\n", "x", 5},
-		{"var test = true\n", "test", true},
-		{"var test2 = y\n", "test2", "y"},
-		{"var test2 = y\n", "test2", "y"},
+		{"var x = 5", "x", 5},
+		{"var test = true", "test", true},
+		{"var test2 = y", "test2", "y"},
+		{"var test2 = y", "test2", "y"},
 	}
 	for _, testCase := range tests {
 		lex := lexer.NewLexer(bufio.NewReader(bytes.NewBufferString(testCase.input)))

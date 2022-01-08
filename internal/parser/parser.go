@@ -198,6 +198,11 @@ func (parser *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 
 	statement.Expression = parser.parseExpression(LOWEST)
 
+	if parser.peeked.Type == token.IDENT {
+		parser.invalidExpressionError(parser.current, parser.peeked)
+		return nil
+	}
+
 	if parser.peeked.Type == token.NEWLINE {
 		parser.nextToken()
 	}
@@ -207,7 +212,7 @@ func (parser *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 func (parser *Parser) parseExpression(prio Priority) ast.Expression {
 	prefix := parser.prefixParseFns[parser.current.Type]
 	if prefix == nil {
-		parser.noPrefixParseFunctionError(parser.current.Type)
+		parser.noPrefixParseFunctionError(parser.current)
 		return nil
 	}
 
@@ -276,7 +281,6 @@ func (parser *Parser) parseMapLiteral() ast.Expression {
 		parser.nextToken()
 		currentKey := parser.parseExpression(LOWEST)
 		if !parser.expectPeek(token.COLON) {
-			// TODO add error ?
 			return nil
 		}
 
@@ -284,12 +288,10 @@ func (parser *Parser) parseMapLiteral() ast.Expression {
 		currentVal := parser.parseExpression(LOWEST)
 		mapLiteral.Mappings[currentKey] = currentVal
 		if (parser.peeked.Type != token.RBRACE && !parser.expectPeek(token.COMMA)) || !parser.skipNewline() {
-			// TODO add error ?
 			return nil
 		}
 	}
 	if !parser.expectPeek(token.RBRACE) {
-		// TODO add error ?
 		return nil
 	}
 	return mapLiteral
@@ -309,7 +311,6 @@ func (parser *Parser) parseGroupedExpression() ast.Expression {
 }
 
 func (parser *Parser) parseIfExpression() ast.Expression {
-	// this was modified to default to go-like ifs (no parenthesis)
 	// TODO modify AST for if and this to allow else if
 	expression := &ast.IfExpression{Token: parser.current}
 
@@ -481,8 +482,13 @@ func (parser *Parser) peekError(t token.TokenType) {
 	parser.errors = append(parser.errors, errMsg)
 }
 
-func (parser *Parser) noPrefixParseFunctionError(t token.TokenType) {
-	errMsg := fmt.Sprintf("cannot parse prefix operator %q", t)
+func (parser *Parser) noPrefixParseFunctionError(t token.Token) {
+	errMsg := fmt.Sprintf("cannot parse: prefix operator %q", t.Literal)
+	parser.errors = append(parser.errors, errMsg)
+}
+
+func (parser *Parser) invalidExpressionError(t token.Token, p token.Token) {
+	errMsg := fmt.Sprintf("cannot parse: invalid expression \"%s%s\"", t.Literal, p.Literal)
 	parser.errors = append(parser.errors, errMsg)
 }
 
