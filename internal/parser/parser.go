@@ -184,7 +184,7 @@ func (parser *Parser) parseReturnStatement() *ast.ReturnStatement {
 	for parser.current.Type != token.NEWLINE &&
 		(parser.peeked.Type != token.RBRACE && parser.peeked.Type != token.NEWLINE) {
 		if parser.current.Type == token.EOF {
-			errMsg := fmt.Sprintf("unexpected %s", token.EOF)
+			errMsg := fmt.Sprintf("unexpected %s on line %d", token.EOF, parser.lex.GetLineNumber())
 			parser.errors = append(parser.errors, errMsg)
 			return nil
 		}
@@ -245,7 +245,8 @@ func (parser *Parser) parseIntegerLiteral() ast.Expression {
 		value, err = strconv.ParseInt(parser.current.Literal, 0, 64)
 	}
 	if err != nil {
-		errMsg := fmt.Sprintf("%q could not be parsed as an integer", parser.current.Literal)
+		errMsg := fmt.Sprintf("%q could not be parsed as an integer, on line %d", parser.current.Literal,
+			parser.lex.GetLineNumber())
 		parser.errors = append(parser.errors, errMsg)
 		return nil
 	}
@@ -273,7 +274,7 @@ func (parser *Parser) parseMapLiteral() ast.Expression {
 
 	for parser.peeked.Type != token.RBRACE {
 		if !parser.skipNewline() {
-			errMsg := fmt.Sprintf("unexpected %s", token.EOF)
+			errMsg := fmt.Sprintf("unexpected %s on line %d", token.EOF, parser.lex.GetLineNumber())
 			parser.errors = append(parser.errors, errMsg)
 			return nil
 		}
@@ -395,7 +396,8 @@ func (parser *Parser) parseBlockStatement() *ast.BlockStatement {
 
 	for parser.current.Type != token.RBRACE {
 		if parser.current.Type == token.EOF {
-			errMsg := fmt.Sprintf("expected %s, got %s", token.RBRACE, token.EOF)
+			errMsg := fmt.Sprintf("expected %s, got %s on line %d", token.RBRACE, token.EOF,
+				parser.lex.GetLineNumber())
 			parser.errors = append(parser.errors, errMsg)
 			return nil
 		}
@@ -478,17 +480,19 @@ func (parser *Parser) peekPrecedence() Priority {
 }
 
 func (parser *Parser) peekError(t token.TokenType) {
-	errMsg := fmt.Sprintf("expected token of type %q, got %q", t, parser.peeked.Type)
+	errMsg := fmt.Sprintf("expected token of type %q, got %q on line %d", t, parser.peeked.Type,
+		parser.lex.GetLineNumber())
 	parser.errors = append(parser.errors, errMsg)
 }
 
 func (parser *Parser) noPrefixParseFunctionError(t token.Token) {
-	errMsg := fmt.Sprintf("cannot parse: prefix operator %q", t.Literal)
+	errMsg := fmt.Sprintf("cannot parse: prefix operator %q on line %d", t.Literal, parser.lex.GetLineNumber())
 	parser.errors = append(parser.errors, errMsg)
 }
 
 func (parser *Parser) invalidExpressionError(t token.Token, p token.Token) {
-	errMsg := fmt.Sprintf("cannot parse: invalid expression \"%s%s\"", t.Literal, p.Literal)
+	errMsg := fmt.Sprintf("cannot parse: invalid expression \"%s%s\" on line %d", t.Literal, p.Literal,
+		parser.lex.GetLineNumber())
 	parser.errors = append(parser.errors, errMsg)
 }
 

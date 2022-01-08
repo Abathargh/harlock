@@ -12,10 +12,11 @@ import (
 type Lexer struct {
 	input io.RuneScanner
 	char  rune
+	line  int
 }
 
 func NewLexer(input io.RuneScanner) *Lexer {
-	l := &Lexer{input: input}
+	l := &Lexer{input: input, line: 1}
 	l.readRune()
 	return l
 }
@@ -99,6 +100,7 @@ func (lexer *Lexer) NextToken() token.Token {
 	case ':':
 		t = token.Token{Type: token.COLON, Literal: string(lexer.char)}
 	case '\n':
+		lexer.line++
 		t = token.Token{Type: token.NEWLINE, Literal: string(lexer.char)}
 	case '(':
 		t = token.Token{Type: token.LPAREN, Literal: string(lexer.char)}
@@ -130,6 +132,10 @@ func (lexer *Lexer) NextToken() token.Token {
 	}
 	lexer.readRune()
 	return t
+}
+
+func (lexer *Lexer) GetLineNumber() int {
+	return lexer.line
 }
 
 func (lexer *Lexer) readIdentifier() string {
