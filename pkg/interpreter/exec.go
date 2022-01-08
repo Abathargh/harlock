@@ -3,7 +3,6 @@ package interpreter
 import (
 	"bufio"
 	"io"
-	"os"
 
 	"github.com/Abathargh/harlock/internal/object"
 
@@ -12,14 +11,9 @@ import (
 	"github.com/Abathargh/harlock/internal/parser"
 )
 
-func Exec(filename string, output io.Writer) []string {
-	o, err := os.Open(filename)
-	if err != nil {
-		return []string{err.Error()}
-	}
-
+func Exec(r io.Reader, output io.Writer) []string {
 	env := object.NewEnvironment()
-	l := lexer.NewLexer(bufio.NewReader(o))
+	l := lexer.NewLexer(bufio.NewReader(r))
 	p := parser.NewParser(l)
 	program := p.ParseProgram()
 	if len(p.Errors()) != 0 {
