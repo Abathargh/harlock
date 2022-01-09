@@ -65,6 +65,7 @@ true                        # booleans
 [1, 2, 10]                  # arrays
 {key2: val2, key1: val1}    # maps
 var ex = 12                 # variables
+// this is a comment        # comments
 
 # Integer values and operations
 var normal = 12
@@ -101,19 +102,20 @@ var s = 'test string'
 s == "test string"
 s != "test strings"
 len(s) == 11
-
+hex("FF0102") == [255, 1, 2]
 # Arrays
 var arr = [1, 2, 3]
 arr[0] == 1
-push(arr, 4)
-pop(arr)
+arr.push(4)
+arr.pop()
+arr.slice(0, 1)
 
 # Maps
 var m = {"test": value, 1: 23}
-m["test"] = value
-map_set(m, "new", 12)
-pop(m, "new")
 len(m) == 2
+m["test"] = value
+m.set("new", 12)
+m.pop("new")
 
 # Conditional expressions
 if x < y { ret x } else { ret y }
