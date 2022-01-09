@@ -320,9 +320,6 @@ func TestBuiltinFunctions(t *testing.T) {
 		{`type({})`, object.MapObj},
 		{`type(type([]))`, object.TypeObj},
 		{`print("ciao")`, nil},
-		{`push([1, 2], 3)`, "[1, 2, 3]"},
-		{`pop([1, 2])`, "[1]"},
-		{`pop({1: 2, 3: 4}, 1)`, nil},
 	}
 
 	for _, testCase := range tests {
@@ -438,8 +435,35 @@ func TestMapIndexExpressions(t *testing.T) {
 	}
 }
 
-func TestBuiltinMethods(t *testing.T) {
-	// TODO
+func TestArrayBuiltinMethods(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected []int64
+	}{
+		{`[1, 2].push(3)`, []int64{1, 2, 3}},
+		{`[1, 2].pop()`, []int64{1}},
+		{`[1, 2, 3, 4].slice(1, 3)`, []int64{2, 3}},
+	}
+
+	for _, testCase := range tests {
+		evalArrayBuiltin := testEval(testCase.input)
+		testArrayObject(t, evalArrayBuiltin, testCase.expected)
+	}
+}
+
+func TestMapBuiltinMethods(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected [][]int64
+	}{
+		{"var m = {1: 2}\nm.set(3, 4)\nm", [][]int64{{1, 2}, {3, 4}}},
+		{"var m  = {1: 2, 3: 4}\nm.pop(3)\nm", [][]int64{{1, 2}}},
+	}
+
+	for _, testCase := range tests {
+		evalArrayBuiltin := testEval(testCase.input)
+		testMapObject(t, evalArrayBuiltin, testCase.expected)
+	}
 }
 
 func testEval(input string) object.Object {
@@ -463,6 +487,56 @@ func testIntegerObject(t *testing.T, obj object.Object, expected int64) bool {
 	if integerObj.Value != expected {
 		t.Errorf("expected %d, got %d", expected, integerObj.Value)
 		return false
+	}
+	return true
+}
+
+func testArrayObject(t *testing.T, obj object.Object, expected []int64) bool {
+	arrayObj, ok := obj.(*object.Array)
+	if !ok {
+		t.Errorf("expected object to be an Array, got %T", obj)
+		return false
+	}
+
+	if len(arrayObj.Elements) != len(expected) {
+		t.Errorf("expected array with %d elements, got %d", len(arrayObj.Elements), len(expected))
+		return false
+	}
+
+	for idx, element := range arrayObj.Elements {
+		if !testIntegerObject(t, element, expected[idx]) {
+			return false
+		}
+	}
+	return true
+}
+
+func testMapObject(t *testing.T, obj object.Object, expected [][]int64) bool {
+	mapObj, ok := obj.(*object.Map)
+	if !ok {
+		t.Errorf("expected object to be an Map, got %T", obj)
+		return false
+	}
+
+	if len(mapObj.Mappings) != len(expected) {
+		t.Errorf("expected array with %d elements, got %d", len(mapObj.Mappings), len(expected))
+		return false
+	}
+
+	for _, pair := range expected {
+		intKey := &object.Integer{Value: pair[0]}
+		keyHash := intKey.HashKey()
+
+		keyVal, contains := mapObj.Mappings[keyHash]
+
+		if !contains {
+			t.Errorf("expected to contain element with key %d", pair[0])
+			return false
+		}
+
+		if !testIntegerObject(t, keyVal.Value, pair[1]) {
+			return false
+		}
 	}
 	return true
 }

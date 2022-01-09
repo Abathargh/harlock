@@ -17,17 +17,23 @@ var (
 	FALSE = &object.Boolean{Value: false}
 
 	builtins = map[string]*object.Builtin{
-		"hex":     {Function: builtinHex},
-		"len":     {Function: builtinLen},
-		"pop":     {Function: builtinPop},
-		"type":    {Function: builtinType},
-		"push":    {Function: builtinPush},
-		"slice":   {Function: builtinSlice},
-		"print":   {Function: builtinPrint},
-		"map_set": {Function: builtinMapSet},
+		"hex":   {Function: builtinHex},
+		"len":   {Function: builtinLen},
+		"type":  {Function: builtinType},
+		"print": {Function: builtinPrint},
 	}
 
-	builtinMethods = map[object.ObjectType]MethodMapping{}
+	builtinMethods = map[object.ObjectType]MethodMapping{
+		object.ArrayObj: {
+			"pop":   arrayBuiltinPop,
+			"push":  arrayBuiltinPush,
+			"slice": arrayBuiltinSlice,
+		},
+		object.MapObj: {
+			"set": mapBuiltinSet,
+			"pop": mapBuiltinPop,
+		},
+	}
 )
 
 func Eval(node ast.Node, env *object.Environment) object.Object {
