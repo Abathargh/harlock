@@ -11,20 +11,23 @@ import (
 type ObjectType string
 
 const (
-	NullObj        = "NULL"
+	NullObj        = "Null"
 	TypeObj        = "Type"
 	MapObj         = "Map"
-	ErrorObj       = "ERROR"
-	ArrayObj       = "ARRAY"
-	StringObj      = "STRING"
-	IntegerObj     = "INTEGER"
-	BooleanObj     = "BOOLEAN"
-	BuiltinObj     = "BUILTIN"
-	FunctionObj    = "FUNCTION"
-	ReturnValueObj = "RETURN_VALUE"
+	FileObj        = "File"
+	ErrorObj       = "Error"
+	ArrayObj       = "Array"
+	StringObj      = "String"
+	MethodObj      = "Method"
+	IntegerObj     = "Int"
+	BooleanObj     = "Bool"
+	BuiltinObj     = "Builtin Function"
+	FunctionObj    = "Function"
+	ReturnValueObj = "Return value"
 )
 
 type BuiltinFunction func(args ...Object) Object
+type MethodFunction func(this Object, args ...Object) Object
 
 type Object interface {
 	Type() ObjectType
@@ -217,6 +220,7 @@ func (h *Map) Inspect() string {
 	var buf strings.Builder
 	var mappings []string
 	for _, mapping := range h.Mappings {
+
 		mappings = append(mappings,
 			fmt.Sprintf("%s: %s", mapping.Key.Inspect(), mapping.Value.Inspect()))
 	}
@@ -225,4 +229,16 @@ func (h *Map) Inspect() string {
 	buf.WriteString(strings.Join(mappings, ", "))
 	buf.WriteString("}")
 	return buf.String()
+}
+
+type Method struct {
+	MethodFunc MethodFunction
+}
+
+func (m *Method) Type() ObjectType {
+	return MethodObj
+}
+
+func (m *Method) Inspect() string {
+	return "builtin method"
 }

@@ -3,6 +3,7 @@ package evaluator
 import (
 	"bufio"
 	"bytes"
+	"strings"
 	"testing"
 
 	"github.com/Abathargh/harlock/internal/lexer"
@@ -20,7 +21,7 @@ func TestEvalIntegerExpression(t *testing.T) {
 		{"-5", -5},
 		{"--5", 5},
 		{"-10", -10},
-		{"~3", -4},
+		{"~3", 252},
 		{"1 | 2", 3},
 		{"1 & 2", 0},
 		{"(2 + 2) * 3", 12},
@@ -162,14 +163,14 @@ func TestErrorHandling(t *testing.T) {
 		input            string
 		expectedErrorMsg string
 	}{
-		{"false + true", "unknown operator: BOOLEAN + BOOLEAN"},
-		{"false + 12", "type mismatch: BOOLEAN + INTEGER"},
-		{"-true", "unknown operator: -BOOLEAN"},
-		{"~false", "unknown operator: ~BOOLEAN"},
-		{"if 2 < 3 { ret 12 + true }", "type mismatch: INTEGER + BOOLEAN"},
-		{`"string" + 12`, "type mismatch: STRING + INTEGER"},
-		{`"string" + true`, "type mismatch: STRING + BOOLEAN"},
-		{`"string" - "string2"`, "unknown operator: STRING - STRING"},
+		{"false + true", "unknown operator: Bool + Bool"},
+		{"false + 12", "type mismatch: Bool + Int"},
+		{"-true", "unknown operator: -Bool"},
+		{"~false", "unknown operator: ~Bool"},
+		{"if 2 < 3 { ret 12 + true }", "type mismatch: Int + Bool"},
+		{`"string" + 12`, "type mismatch: String + Int"},
+		{`"string" + true`, "type mismatch: String + Bool"},
+		{`"string" - "string2"`, "unknown operator: String - String"},
 	}
 
 	for _, testCase := range tests {
@@ -308,6 +309,7 @@ func TestBuiltinFunctions(t *testing.T) {
 		expected interface{}
 	}{
 		{`hex(255)`, "0xff"},
+		{`hex("ffab21")`, object.ArrayObj},
 		{`len("")`, 0},
 		{`len("ciao")`, 4},
 		{`type("ciao")`, object.StringObj},
@@ -436,10 +438,17 @@ func TestMapIndexExpressions(t *testing.T) {
 	}
 }
 
+func TestBuiltinMethods(t *testing.T) {
+	// TODO
+}
+
 func testEval(input string) object.Object {
 	l := lexer.NewLexer(bufio.NewReader(bytes.NewBufferString(input)))
 	p := parser.NewParser(l)
 	program := p.ParseProgram()
+	if len(p.Errors()) != 0 {
+		return &object.Error{Message: strings.Join(p.Errors(), ", ")}
+	}
 	env := object.NewEnvironment()
 	return Eval(program, env)
 }

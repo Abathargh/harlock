@@ -23,7 +23,8 @@ if ret false true else
 {"key": "val"}
 file.test()
 "\x55\X5a"
-"\u0056\u005b"`
+"\u0056\u005b"
+test.method()`
 	tests := []struct {
 		expectedType    token.TokenType
 		expectedLiteral string
@@ -126,6 +127,13 @@ file.test()
 		{token.NEWLINE, "\n"},
 
 		{token.STR, "V["},
+		{token.NEWLINE, "\n"},
+
+		{token.IDENT, "test"},
+		{token.PERIOD, "."},
+		{token.IDENT, "method"},
+		{token.LPAREN, "("},
+		{token.RPAREN, ")"},
 		{token.EOF, ""},
 	}
 

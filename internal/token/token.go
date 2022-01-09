@@ -43,7 +43,7 @@ const (
 
 	COMMA   = ","
 	COLON   = ":"
-	ESCAPE  = "\\"
+	PERIOD  = "."
 	NEWLINE = "\n"
 
 	LPAREN = "("

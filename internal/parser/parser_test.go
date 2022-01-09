@@ -292,6 +292,7 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 		{"a | b && c | d ", "((a|b)&&(c|d))"},
 		{"a * [1,2,5][2*1] / 2 ", "((a*[1, 2, 5][(2*1)])/2)"},
 		{"call(2 * a[2], 3 + a[3])", "call((2*a[2]), (3+a[3]))"},
+		{"2 * test.method()", "(2*test.method())"},
 	}
 
 	for _, testCase := range tests {
@@ -662,6 +663,33 @@ func TestMapLiteralParsingWithExpressions(t *testing.T) {
 	}
 }
 
+func TestMethodCall(t *testing.T) {
+	input := "test.method(1, 2 * 2, 3 - 1)"
+
+	lex := lexer.NewLexer(bufio.NewReader(bytes.NewBufferString(input)))
+	p := NewParser(lex)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	statement := program.Statements[0].(*ast.ExpressionStatement)
+	methodLiteral, ok := statement.Expression.(*ast.MethodCallExpression)
+	if !ok {
+		t.Fatalf("Expected the statement to have MethodLiteral type, got %T", statement.Expression)
+	}
+
+	if !testIdentifier(t, methodLiteral.Caller, "test") {
+		return
+	}
+
+	if len(methodLiteral.Called.Arguments) != 3 {
+		t.Fatalf("expected 3 elements, got %d", len(methodLiteral.Called.Arguments))
+	}
+
+	testIntegerLiteral(t, methodLiteral.Called.Arguments[0], 1)
+	testInfixExpression(t, methodLiteral.Called.Arguments[1], 2, "*", 2)
+	testInfixExpression(t, methodLiteral.Called.Arguments[2], 3, "-", 1)
+}
+
 func testIntegerLiteral(t *testing.T, rightExpression ast.Expression, integerValue int64) bool {
 	integerExprValue, ok := rightExpression.(*ast.IntegerLiteral)
 	if !ok {
@@ -670,7 +698,7 @@ func testIntegerLiteral(t *testing.T, rightExpression ast.Expression, integerVal
 	}
 
 	if integerExprValue.Value != integerValue {
-		t.Errorf("Expected value %q got %q", integerValue, integerExprValue.Value)
+		t.Errorf("Expected value %d got %d", integerValue, integerExprValue.Value)
 		return false
 	}
 

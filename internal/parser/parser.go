@@ -23,6 +23,7 @@ const (
 	SUM
 	PRODUCT
 	PREFIX
+	METHOD
 	CALL
 	INDEX
 )
@@ -46,6 +47,7 @@ var priorities = map[token.TokenType]Priority{
 	token.MUL:       PRODUCT,
 	token.DIV:       PRODUCT,
 	token.MOD:       PRODUCT,
+	token.PERIOD:    METHOD,
 	token.LPAREN:    CALL,
 	token.LBRACK:    INDEX,
 }
@@ -92,6 +94,7 @@ func NewParser(lex *lexer.Lexer) *Parser {
 	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
 	p.registerPrefix(token.REV, p.parsePrefixExpression)
 
+	p.registerInfix(token.PERIOD, p.parseMethodExpression)
 	p.registerInfix(token.LPAREN, p.parseCallExpression)
 	p.registerInfix(token.LBRACK, p.parseIndexExpression)
 
@@ -354,6 +357,23 @@ func (parser *Parser) parseCallExpression(function ast.Expression) ast.Expressio
 	callExpression.Arguments = parser.parseExpressionList(token.RPAREN)
 
 	return callExpression
+}
+
+func (parser *Parser) parseMethodExpression(caller ast.Expression) ast.Expression {
+	methodExpression := &ast.MethodCallExpression{
+		Token:  parser.current,
+		Caller: caller,
+	}
+	if !parser.expectPeek(token.IDENT) {
+		return nil
+	}
+	methodName := parser.parseIdentifier()
+	if !parser.expectPeek(token.LPAREN) {
+		return nil
+	}
+
+	methodExpression.Called = parser.parseCallExpression(methodName).(*ast.CallExpression)
+	return methodExpression
 }
 
 func (parser *Parser) parseIndexExpression(array ast.Expression) ast.Expression {

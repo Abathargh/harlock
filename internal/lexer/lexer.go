@@ -95,6 +95,8 @@ func (lexer *Lexer) NextToken() token.Token {
 		}
 	case '~':
 		t = token.Token{Type: token.REV, Literal: string(lexer.char)}
+	case '.':
+		t = token.Token{Type: token.PERIOD, Literal: string(lexer.char)}
 	case ',':
 		t = token.Token{Type: token.COMMA, Literal: string(lexer.char)}
 	case ':':
@@ -165,7 +167,6 @@ func (lexer *Lexer) readHexNumber() string {
 	buf.WriteRune(lexer.char)
 	lexer.readRune()
 
-	// TODO err if no hex digit
 	for isHexDigit(lexer.char) {
 		buf.WriteRune(lexer.char)
 		lexer.readRune()

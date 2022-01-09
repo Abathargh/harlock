@@ -9,6 +9,8 @@ import (
 	"github.com/Abathargh/harlock/internal/object"
 )
 
+type MethodMapping map[string]object.MethodFunction
+
 var (
 	NULL  = &object.Null{}
 	TRUE  = &object.Boolean{Value: true}
@@ -24,6 +26,8 @@ var (
 		"print":   {Function: builtinPrint},
 		"map_set": {Function: builtinMapSet},
 	}
+
+	builtinMethods = map[object.ObjectType]MethodMapping{}
 )
 
 func Eval(node ast.Node, env *object.Environment) object.Object {
@@ -109,6 +113,8 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return evalIndexExpression(left, index)
 	case *ast.MapLiteral:
 		return evalMapLiteral(currentNode, env)
+	case *ast.MethodCallExpression:
+		return evalMethodExpression(currentNode, env)
 	}
 	return nil
 }
@@ -433,6 +439,27 @@ func evalMapLiteral(mapLiteral *ast.MapLiteral, env *object.Environment) object.
 	return &object.Map{Mappings: mappings}
 }
 
+func evalMethodExpression(methodExpression *ast.MethodCallExpression, env *object.Environment) object.Object {
+	evaluatedCaller := Eval(methodExpression.Caller, env)
+
+	methodName := methodExpression.Called.Function.String()
+	method, exists := builtinMethods[evaluatedCaller.Type()][methodName]
+	if !exists {
+		return newError("object of type %s has no method called %s", evaluatedCaller.Type(), methodName)
+	}
+
+	args := evalExpressions(methodExpression.Called.Arguments, env)
+	if len(args) == 1 && isError(args[0]) {
+		return args[0]
+	}
+	expArgs := make([]object.Object, len(args)+1, cap(args)+1)
+	expArgs[0] = evaluatedCaller
+	copy(expArgs[1:], args)
+
+	methodObj := &object.Method{MethodFunc: method}
+	return callFunction(methodName, methodObj, expArgs)
+}
+
 func callFunction(funcName string, funcObj object.Object, args []object.Object) object.Object {
 	switch function := funcObj.(type) {
 	case *object.Function:
@@ -445,6 +472,11 @@ func callFunction(funcName string, funcObj object.Object, args []object.Object) 
 		return newError("type error: function %q was called with a wrong number of args", nameOnly)
 	case *object.Builtin:
 		return function.Function(args...)
+	case *object.Method:
+		if len(args) == 1 {
+			return function.MethodFunc(args[0])
+		}
+		return function.MethodFunc(args[0], args[1:]...)
 	default:
 		return newError("identifier is not a function: %s", funcObj.Type())
 	}

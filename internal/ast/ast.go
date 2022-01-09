@@ -393,3 +393,28 @@ func (hl *MapLiteral) String() string {
 	buf.WriteString("}")
 	return buf.String()
 }
+
+type MethodCallExpression struct {
+	Token  token.Token
+	Caller Expression
+	Called *CallExpression
+}
+
+func (ml *MethodCallExpression) expressionNode() {}
+
+func (ml *MethodCallExpression) TokenLiteral() string {
+	return ml.Token.Literal
+}
+
+func (ml *MethodCallExpression) String() string {
+	var buf strings.Builder
+	var methodArgs []string
+	for _, arg := range ml.Called.Arguments {
+		methodArgs = append(methodArgs, arg.String())
+	}
+
+	buf.WriteString(ml.Caller.String())
+	buf.WriteString(".")
+	buf.WriteString(ml.Called.String())
+	return buf.String()
+}
