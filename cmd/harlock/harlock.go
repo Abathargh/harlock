@@ -27,28 +27,33 @@ func main() {
 	fs := flag.NewFlagSet("harlock", flag.ExitOnError)
 	help := fs.Bool("help", false, "show this help message")
 	version := fs.Bool("version", false, "prints the version for this build")
+	embed := fs.String("embed", "", "embeds the input script into an executable "+
+		"containing the interpreter runtime")
+
 	err := fs.Parse(os.Args[1:])
 	if err != nil {
 		panic(err)
 	}
 
-	if *help {
+	switch {
+	case *help:
 		fmt.Printf("%s\n", nameMessage)
 		fmt.Printf("%s\n", helpMessage)
 		fs.PrintDefaults()
 		return
-	}
-
-	if *version {
+	case *version:
 		fmt.Printf("Harlock %s\n", Version)
 		return
-	}
-
-	switch len(os.Args) {
-	case 1:
-		fmt.Printf("Hsarlock %s - %s on %s\n", Version, runtime.GOARCH, runtime.GOOS)
+	case *embed != "":
+		err := interpreter.Embed(*embed)
+		if err != nil {
+			_, _ = io.WriteString(os.Stderr, err.Error()+"\n")
+			return
+		}
+	case fs.Arg(0) == "":
+		fmt.Printf("Harlock %s - %s on %s\n", Version, runtime.GOARCH, runtime.GOOS)
 		repl.Start(os.Stdin, os.Stdout)
-	case 2:
+	case fs.Arg(0) != "":
 		f, err := os.Open(os.Args[1])
 		if err != nil {
 			_, _ = io.WriteString(os.Stderr, err.Error()+"\n")

@@ -1,3 +1,6 @@
+// Package interpreter implements the public API that
+// can be used to interact with the harlock runtime
+// from other applications or the CLI tool.
 package interpreter
 
 import (
@@ -11,6 +14,10 @@ import (
 	"github.com/Abathargh/harlock/internal/parser"
 )
 
+// Exec reads a script from the passed reader, executes it and
+// sends the generated output to the passed writer. If the parsing
+// phase fails, it returns an array of string containing the parsing
+// errors, or nil otherwise.
 func Exec(r io.Reader, output io.Writer) []string {
 	env := object.NewEnvironment()
 	l := lexer.NewLexer(bufio.NewReader(r))

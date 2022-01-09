@@ -5,12 +5,22 @@ data embedding in executables, mainly usable as a scripting language for
 binaries post-processing. It is based around the ideas discussed 
 in the *Writing An Interpreter In Go* book by Thorsten Ball.
 
-# Download
+- [Harlock](#harlock)
+  - [Download](#download)
+  - [Build](#build)
+  - [Usage](#usage)
+    - [Run a script](#run-a-script)
+    - [Start the REPL](#start-the-repl)
+    - [Embed a script](#embed-a-script)
+- [Language primitives & operations](#language-primitives--operations)
+  - [License](#license)
+
+## Download
 
 ```bash
 go install github.com/Abathargh/harlock/cmd/harlock@latest
 ```
-# Build 
+## Build 
 
 Builds are executed using the linker flags to strip the debug symbols 
 from the binaries, to achieve smaller sized executables.
@@ -20,7 +30,32 @@ make          # build in place
 make install  # build and install in $GOPATH/bin
 ```
 
-# Usage
+## Usage
+
+### Run a script
+
+```bash
+harlock script.hlk
+```
+
+### Start the REPL
+
+```bash
+harlock
+Harlock v0.0.0 - amd64 on windows
+>>> var hello = "Hello World!"
+>>> print(hello)
+Hello World!
+```
+
+### Embed a script
+
+You can embed a harlock script into an executable together with the harlock runtime:
+```bash
+harlock -embed script.hlk
+```
+
+# Language primitives & operations
 
 ```
 # Values and variables
@@ -101,6 +136,6 @@ print("test")
 ```
 
 
-# License
+## License
 
 The interpreter is licensed under the terms of the MIT License.
