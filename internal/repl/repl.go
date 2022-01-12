@@ -33,8 +33,7 @@ func Start(input io.Reader, output io.Writer) {
 			return
 		}
 
-		line := scanner.Text()
-
+		line := strings.TrimSpace(scanner.Text())
 		switch {
 		case line == "" && !exprStarted:
 			continue
