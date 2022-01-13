@@ -466,6 +466,38 @@ func TestMapBuiltinMethods(t *testing.T) {
 	}
 }
 
+func TestTryExpression(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected interface{}
+	}{
+		{"var a = try 1\na", 1},
+		{"var a = fun() { ret try 12 }\na()", 12},
+		{"var a = fun() { ret try 1/0 }\na()", nil},
+		{`
+var mul = fun(x, y) {
+	ret x / y
+}
+var double_mul = fun(x, y) {
+	var m = try mul(x, y)
+	ret 2 * m
+}
+double_mul(1, 0)`, nil},
+	}
+
+	for _, testCase := range tests {
+		evalTryExpression := testEval(testCase.input)
+		switch expected := testCase.expected.(type) {
+		case int:
+			testIntegerObject(t, evalTryExpression, int64(expected))
+		default:
+			if evalTryExpression.Type() != object.ErrorObj {
+				t.Errorf("Expected an Error object, got %s", object.ErrorObj)
+			}
+		}
+	}
+}
+
 func testEval(input string) object.Object {
 	l := lexer.NewLexer(bufio.NewReader(bytes.NewBufferString(input)))
 	p := parser.NewParser(l)

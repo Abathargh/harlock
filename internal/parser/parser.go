@@ -79,6 +79,7 @@ func NewParser(lex *lexer.Lexer) *Parser {
 	p.registerPrefix(token.FALSE, p.parseBoolean)
 
 	p.registerPrefix(token.IF, p.parseIfExpression)
+	p.registerPrefix(token.TRY, p.parseTryExpression)
 
 	p.registerPrefix(token.FUNCTION, p.parseFunctionLiteral)
 
@@ -333,6 +334,13 @@ func (parser *Parser) parseIfExpression() ast.Expression {
 		expression.Alternative = parser.parseBlockStatement()
 	}
 	return expression
+}
+
+func (parser *Parser) parseTryExpression() ast.Expression {
+	tryExpression := &ast.TryExpression{Token: parser.current}
+	parser.nextToken()
+	tryExpression.Expression = parser.parseExpression(LOWEST)
+	return tryExpression
 }
 
 func (parser *Parser) parseFunctionLiteral() ast.Expression {

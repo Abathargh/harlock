@@ -71,16 +71,13 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	case *ast.ReturnStatement:
 		if currentNode.ReturnValue != nil {
 			returnValue := Eval(currentNode.ReturnValue, env)
-			if isError(returnValue) {
-				return returnValue
-			}
 			return &object.ReturnValue{Value: returnValue}
 		}
 		return &object.ReturnValue{Value: NULL}
 	case *ast.VarStatement:
 		letValue := Eval(currentNode.Value, env)
-		if isError(letValue) {
-			return letValue
+		if letValue != nil && letValue.Type() == object.ReturnValueObj {
+			return unwrapReturnValue(letValue)
 		}
 		env.Set(currentNode.Name.Value, letValue)
 	case *ast.NoOp:
@@ -93,13 +90,7 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return &object.Function{Parameters: parameters, Body: functionBody, Env: env}
 	case *ast.CallExpression:
 		functionCall := Eval(currentNode.Function, env)
-		if isError(functionCall) {
-			return functionCall
-		}
 		args := evalExpressions(currentNode.Arguments, env)
-		if len(args) == 1 && isError(args[0]) {
-			return args[0]
-		}
 		return callFunction(currentNode.String(), functionCall, args)
 	case *ast.ArrayLiteral:
 		elements := evalExpressions(currentNode.Elements, env)
@@ -121,6 +112,12 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return evalMapLiteral(currentNode, env)
 	case *ast.MethodCallExpression:
 		return evalMethodExpression(currentNode, env)
+	case *ast.TryExpression:
+		exprValue := Eval(currentNode.Expression, env)
+		if isError(exprValue) && env.IsNestedBlock() {
+			return &object.ReturnValue{Value: exprValue}
+		}
+		return exprValue
 	}
 	return nil
 }
@@ -399,8 +396,7 @@ func evalArrayIndexExpression(array, index object.Object) object.Object {
 	maxIdx := int64(len(arrayObject.Elements) - 1)
 
 	if idx < 0 || idx > maxIdx {
-		// TODO return error, not NULL
-		return NULL
+		return newError("index error: %d is out of bounds", idx)
 	}
 	return arrayObject.Elements[idx]
 }

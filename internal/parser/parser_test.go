@@ -690,6 +690,25 @@ func TestMethodCall(t *testing.T) {
 	testInfixExpression(t, methodLiteral.Called.Arguments[2], 3, "-", 1)
 }
 
+func TestTryExpression(t *testing.T) {
+	input := "try test.method()"
+
+	lex := lexer.NewLexer(bufio.NewReader(bytes.NewBufferString(input)))
+	p := NewParser(lex)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	statement := program.Statements[0].(*ast.ExpressionStatement)
+	tryExpression, ok := statement.Expression.(*ast.TryExpression)
+	if !ok {
+		t.Fatalf("Expected the statement to have TryExpression type, got %T", statement.Expression)
+	}
+
+	if tryExpression.Expression.String() != "test.method()" {
+		t.Fatalf("expected 'test.method()', got %q", tryExpression.Expression.String())
+	}
+}
+
 func testIntegerLiteral(t *testing.T, rightExpression ast.Expression, integerValue int64) bool {
 	integerExprValue, ok := rightExpression.(*ast.IntegerLiteral)
 	if !ok {

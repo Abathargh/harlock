@@ -29,3 +29,7 @@ func (env *Environment) Set(name string, obj Object) Object {
 	env.names[name] = obj
 	return obj
 }
+
+func (env *Environment) IsNestedBlock() bool {
+	return env.outer != nil
+}

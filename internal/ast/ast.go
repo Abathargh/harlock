@@ -210,8 +210,9 @@ func (ife *IfExpression) String() string {
 	var buf strings.Builder
 	buf.WriteString("if")
 	buf.WriteString(ife.Condition.String())
-	buf.WriteString(" ")
+	buf.WriteString(" {\n")
 	buf.WriteString(ife.Consequence.String())
+	buf.WriteString("\n}")
 
 	if ife.Alternative != nil {
 		buf.WriteString("else ")
@@ -416,5 +417,23 @@ func (ml *MethodCallExpression) String() string {
 	buf.WriteString(ml.Caller.String())
 	buf.WriteString(".")
 	buf.WriteString(ml.Called.String())
+	return buf.String()
+}
+
+type TryExpression struct {
+	Token      token.Token
+	Expression Expression
+}
+
+func (te *TryExpression) expressionNode() {}
+
+func (te *TryExpression) TokenLiteral() string {
+	return te.Token.Literal
+}
+
+func (te *TryExpression) String() string {
+	var buf strings.Builder
+	buf.WriteString("try ")
+	buf.WriteString(te.Expression.String())
 	return buf.String()
 }

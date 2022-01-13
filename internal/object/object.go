@@ -101,7 +101,6 @@ func (rv *ReturnValue) Inspect() string {
 }
 
 type Error struct {
-	// TODO add support for error line/column tracing (needs changes in lexer)
 	// TODO add subtype info referring to a typed enum for different error values
 	Message string
 }
@@ -136,7 +135,7 @@ func (f *Function) Inspect() string {
 	buf.WriteString(strings.Join(parameters, ", "))
 	buf.WriteString(") {\n")
 	buf.WriteString(f.Body.String())
-	buf.WriteString("\n}")
+	buf.WriteString("}")
 	return buf.String()
 }
 
