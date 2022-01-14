@@ -13,7 +13,6 @@ import (
 )
 
 const (
-	Version     = ""
 	nameMessage = "usage: harlock [flags] [filename]"
 	helpMessage = `Execute an harlock script or start a REPL session. 
 If the optional filename argument is passed, it must be a valid 
@@ -42,7 +41,7 @@ func main() {
 		fs.PrintDefaults()
 		return
 	case *version:
-		fmt.Printf("Harlock %s\n", Version)
+		fmt.Printf("Harlock %s\n", interpreter.Version)
 		return
 	case *embed != "":
 		err := interpreter.Embed(*embed)
@@ -51,7 +50,7 @@ func main() {
 			return
 		}
 	case fs.Arg(0) == "":
-		fmt.Printf("Harlock %s - %s on %s\n", Version, runtime.GOARCH, runtime.GOOS)
+		fmt.Printf("Harlock %s - %s on %s\n", interpreter.Version, runtime.GOARCH, runtime.GOOS)
 		repl.Start(os.Stdin, os.Stdout)
 	case fs.Arg(0) != "":
 		f, err := os.Open(os.Args[1])

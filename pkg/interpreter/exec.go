@@ -14,6 +14,9 @@ import (
 	"github.com/Abathargh/harlock/internal/parser"
 )
 
+// Version represents the current harlock version
+var Version = ""
+
 // Exec reads a script from the passed reader, executes it and
 // sends the generated output to the passed writer. If the parsing
 // phase fails, it returns an array of string containing the parsing
