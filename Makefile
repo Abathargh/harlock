@@ -1,5 +1,5 @@
 version := $(shell git describe --tags)
-harlock : cmd/harlock
+build :
 	go build -ldflags "-s -w -X 'github.com/Abathargh/harlock/pkg/interpreter.Version=$(version)'" ./cmd/harlock
 
 install :
@@ -9,4 +9,5 @@ test :
 	go test ./...
 
 .PHONY : test
+.PHONY : build
 .PHONY : install
