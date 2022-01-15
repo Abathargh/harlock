@@ -24,7 +24,7 @@ func main() {
 	fileContent := `
 
 	footerTemplate = `
-errs := interpreter.Exec(bytes.NewBufferString(fileContent), os.Stdout)
+errs := interpreter.Exec(bytes.NewBufferString(fileContent), os.Stdout, os.Args...)
 	if errs != nil {
 		for _, err := range errs {
 			_, _ = io.WriteString(os.Stderr, fmt.Sprintf("%s\n", err))

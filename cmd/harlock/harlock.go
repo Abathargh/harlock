@@ -29,8 +29,7 @@ func main() {
 	embed := fs.String("embed", "", "embeds the input script into an executable "+
 		"containing the interpreter runtime")
 
-	err := fs.Parse(os.Args[1:])
-	if err != nil {
+	if err := fs.Parse(os.Args[1:]); err != nil {
 		panic(err)
 	}
 
@@ -44,21 +43,20 @@ func main() {
 		fmt.Printf("Harlock %s\n", interpreter.Version)
 		return
 	case *embed != "":
-		err := interpreter.Embed(*embed)
-		if err != nil {
+		if err := interpreter.Embed(*embed); err != nil {
 			_, _ = io.WriteString(os.Stderr, err.Error()+"\n")
 			return
 		}
-	case fs.Arg(0) == "":
+	case len(fs.Args()) == 0:
 		fmt.Printf("Harlock %s - %s on %s\n", interpreter.Version, runtime.GOARCH, runtime.GOOS)
 		repl.Start(os.Stdin, os.Stdout)
-	case fs.Arg(0) != "":
-		f, err := os.Open(os.Args[1])
+	case len(fs.Args()) > 0:
+		f, err := os.Open(fs.Arg(0))
 		if err != nil {
 			_, _ = io.WriteString(os.Stderr, err.Error()+"\n")
 		}
 
-		errs := interpreter.Exec(f, os.Stdout)
+		errs := interpreter.Exec(f, os.Stdout, fs.Args()...)
 		if errs != nil {
 			for _, err := range errs {
 				_, _ = io.WriteString(os.Stderr, fmt.Sprintf("%s\n", err))

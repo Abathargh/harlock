@@ -21,7 +21,7 @@ var Version = ""
 // sends the generated output to the passed writer. If the parsing
 // phase fails, it returns an array of string containing the parsing
 // errors, or nil otherwise.
-func Exec(r io.Reader, output io.Writer) []string {
+func Exec(r io.Reader, output io.Writer, args ...string) []string {
 	env := object.NewEnvironment()
 	l := lexer.NewLexer(bufio.NewReader(r))
 	p := parser.NewParser(l)
@@ -29,6 +29,13 @@ func Exec(r io.Reader, output io.Writer) []string {
 	if len(p.Errors()) != 0 {
 		return p.Errors()
 	}
+
+	// The interpreter inherits the args from the process call
+	argsArray := &object.Array{Elements: make([]object.Object, len(args))}
+	for idx, arg := range args {
+		argsArray.Elements[idx] = &object.String{Value: arg}
+	}
+	env.Set("args", argsArray)
 
 	evaluatedProg := evaluator.Eval(program, env)
 	if evaluatedProg != nil {
