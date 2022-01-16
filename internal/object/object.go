@@ -13,6 +13,7 @@ type ObjectType string
 const (
 	NullObj        = "Null"
 	TypeObj        = "Type"
+	SetObj         = "Set"
 	MapObj         = "Map"
 	FileObj        = "File"
 	ErrorObj       = "Error"
@@ -240,4 +241,25 @@ func (m *Method) Type() ObjectType {
 
 func (m *Method) Inspect() string {
 	return "builtin method"
+}
+
+type Set struct {
+	Elements map[HashKey]Object
+}
+
+func (s *Set) Type() ObjectType {
+	return SetObj
+}
+
+func (s *Set) Inspect() string {
+	var buf strings.Builder
+	var elements []string
+	for _, mapping := range s.Elements {
+		elements = append(elements, mapping.Inspect())
+	}
+
+	buf.WriteString("set(")
+	buf.WriteString(strings.Join(elements, ", "))
+	buf.WriteString(")")
+	return buf.String()
 }

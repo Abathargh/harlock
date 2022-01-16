@@ -19,6 +19,7 @@ var (
 	builtins = map[string]*object.Builtin{
 		"hex":   {Function: builtinHex},
 		"len":   {Function: builtinLen},
+		"set":   {Function: builtinSet},
 		"type":  {Function: builtinType},
 		"print": {Function: builtinPrint},
 	}

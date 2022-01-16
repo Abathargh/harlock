@@ -312,6 +312,7 @@ func TestBuiltinFunctions(t *testing.T) {
 		{`hex("ffab21")`, object.ArrayObj},
 		{`len("")`, 0},
 		{`len("ciao")`, 4},
+		{`set("ciao", 1, 2, 3)`, object.SetObj},
 		{`type("ciao")`, object.StringObj},
 		{`type(1)`, object.IntegerObj},
 		{`type(1/0)`, object.ErrorObj},

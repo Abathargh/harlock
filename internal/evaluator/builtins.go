@@ -83,3 +83,44 @@ func builtinPrint(args ...object.Object) object.Object {
 	fmt.Println(ifcArgs...)
 	return nil
 }
+
+func builtinSet(args ...object.Object) object.Object {
+	if len(args) == 0 {
+		return newError("type error: not enough args, " +
+			"either pass a sequence or a variable number of hashable objects")
+	}
+
+	set := &object.Set{Elements: make(map[object.HashKey]object.Object)}
+
+	if len(args) == 1 {
+		switch seq := args[0].(type) {
+		case *object.Array:
+			for _, elem := range seq.Elements {
+				hashableElem, isHashable := elem.(object.Hashable)
+				if !isHashable {
+					return newError("the passed key is not an hashable object")
+				}
+
+				hash := hashableElem.HashKey()
+				set.Elements[hash] = elem
+			}
+			return set
+		case *object.Map:
+			for key, pair := range seq.Mappings {
+				set.Elements[key] = pair.Key
+			}
+		}
+		return set
+	}
+
+	for _, elem := range args {
+		hashableElem, isHashable := elem.(object.Hashable)
+		if !isHashable {
+			return newError("the passed key is not an hashable object")
+		}
+
+		hash := hashableElem.HashKey()
+		set.Elements[hash] = elem
+	}
+	return set
+}
