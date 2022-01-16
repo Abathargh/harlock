@@ -109,8 +109,17 @@ func builtinSet(args ...object.Object) object.Object {
 			for key, pair := range seq.Mappings {
 				set.Elements[key] = pair.Key
 			}
+			return set
+		default:
+			hashableElem, isHashable := seq.(object.Hashable)
+			if !isHashable {
+				return newError("the passed key is not an hashable object")
+			}
+
+			hash := hashableElem.HashKey()
+			set.Elements[hash] = seq
+			return set
 		}
-		return set
 	}
 
 	for _, elem := range args {
