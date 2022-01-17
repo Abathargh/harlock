@@ -312,6 +312,9 @@ func TestBuiltinFunctions(t *testing.T) {
 		{`hex("ffab21")`, object.ArrayObj},
 		{`len("")`, 0},
 		{`len("ciao")`, 4},
+		{`len([1, 2, 3])`, 3},
+		{`len({1: 3, 6: 12, "ciao": "test"})`, 3},
+		{`len(set(1, 4, 7, 11))`, 4},
 		{`set("ciao", 1, 2, 3)`, object.SetObj},
 		{`type("ciao")`, object.StringObj},
 		{`type(1)`, object.IntegerObj},
@@ -321,6 +324,12 @@ func TestBuiltinFunctions(t *testing.T) {
 		{`type({})`, object.MapObj},
 		{`type(type([]))`, object.TypeObj},
 		{`print("ciao")`, nil},
+		{`contains([1, 2, 3], 1)`, true},
+		{`contains([1, 2, 3], 4)`, false},
+		{`contains({1: 2, 3: 4}, 3)`, true},
+		{`contains({1: 2, 3: 4}, 5)`, false},
+		{`contains(set(5, 8, 22), 22)`, true},
+		{`contains(set(5, 8, 22), 42)`, false},
 	}
 
 	for _, testCase := range tests {
@@ -328,8 +337,12 @@ func TestBuiltinFunctions(t *testing.T) {
 		switch expected := testCase.expected.(type) {
 		case int:
 			testIntegerObject(t, evalBuiltin, int64(expected))
+		case bool:
+			testBooleanObject(t, evalBuiltin, expected)
 		case object.ObjectType:
-			// TODO case error, string
+			if evalBuiltin.Type() != expected {
+				t.Errorf("expected object of type %s, got %s", expected, evalBuiltin.Type())
+			}
 		}
 	}
 }
@@ -462,8 +475,95 @@ func TestMapBuiltinMethods(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
+		evalMapBuiltin := testEval(testCase.input)
+		testMapObject(t, evalMapBuiltin, testCase.expected)
+	}
+}
+
+func TestArrayInfixMethods(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected interface{}
+	}{
+		{"[1, 2] + [4, 10]", []int64{1, 2, 4, 10}},
+		{"[4, 10] + [1, 2]", []int64{4, 10, 1, 2}},
+		{"[4, 10] == [4, 10]", true},
+		{"[4, 10] != [4, 10]", false},
+		{"[4, 10] == [1, 2]", false},
+		{"[4, 10] != [1, 2]", true},
+	}
+
+	for _, testCase := range tests {
+		evalSetBuiltin := testEval(testCase.input)
+		switch expected := testCase.expected.(type) {
+		case []int64:
+			testArrayObject(t, evalSetBuiltin, expected)
+		case bool:
+			testBooleanObject(t, evalSetBuiltin, expected)
+		}
+	}
+}
+func TestMapInfixMethods(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected bool
+	}{
+		{"{1: 3, 4: 10} == {1: 3, 4: 10}", true},
+		{"{1: 3, 4: 10} == {4: 10, 1: 3}", true},
+		{"{1: 3, 4: 10} == {4: 15, 1: 3}", false},
+		{"{1: 3, 4: 10} != {2: 5, 4: 3}", true},
+		{"{1: 3, 4: 10} != {4: 3, 2: 5}", true},
+		{"{1: 3, 4: 10} != {1: 3, 4: 10}", false},
+	}
+
+	for _, testCase := range tests {
+		evalSetBuiltin := testEval(testCase.input)
+		testBooleanObject(t, evalSetBuiltin, testCase.expected)
+	}
+}
+
+func TestSetInfixOperations(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected interface{}
+	}{
+		{"set(1, 2) + set(2, 3)", []int64{1, 2, 3}},
+		{"set(2, 3) + set(1, 2)", []int64{1, 2, 3}},
+		{"set(1, 2) - set(2, 3)", []int64{1}},
+		{"set(2, 3) - set(1, 2)", []int64{3}},
+		{"set(1, 2, 3) ^ set(2, 6, 7)", []int64{2}},
+		{"set(2, 6, 7) ^ set(1, 2, 3)", []int64{2}},
+		{"set(1, 2, 3) == set(1, 2, 3)", true},
+		{"set(1, 2, 3) != set(1, 2, 3)", false},
+		{"set(1, 2, 3) == set(1, 2)", false},
+		{"set(1, 2, 3) != set(1, 2)", true},
+	}
+
+	for _, testCase := range tests {
+		evalSetBuiltin := testEval(testCase.input)
+		switch expected := testCase.expected.(type) {
+		case []int64:
+			testSetObject(t, evalSetBuiltin, expected)
+		case bool:
+			testBooleanObject(t, evalSetBuiltin, expected)
+		}
+	}
+}
+
+func TestSetBuiltinMethods(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected []int64
+	}{
+		{"var s = set(1, 2)\ns.add(3)\ns", []int64{1, 2, 3}},
+		{"var s = set(1, 2)\ns.add(2)\ns", []int64{1, 2}},
+		{"var s = set(1, 2, 4, 7)}\ns.remove(7)\ns", []int64{1, 2, 4}},
+		{"var s = set(1, 2, 4, 7)}\ns.remove(8)\ns", []int64{1, 2, 4, 7}},
+	}
+
+	for _, testCase := range tests {
 		evalArrayBuiltin := testEval(testCase.input)
-		testMapObject(t, evalArrayBuiltin, testCase.expected)
+		testSetObject(t, evalArrayBuiltin, testCase.expected)
 	}
 }
 
@@ -552,7 +652,7 @@ func testMapObject(t *testing.T, obj object.Object, expected [][]int64) bool {
 	}
 
 	if len(mapObj.Mappings) != len(expected) {
-		t.Errorf("expected array with %d elements, got %d", len(mapObj.Mappings), len(expected))
+		t.Errorf("expected map with %d elements, got %d", len(mapObj.Mappings), len(expected))
 		return false
 	}
 
@@ -568,6 +668,35 @@ func testMapObject(t *testing.T, obj object.Object, expected [][]int64) bool {
 		}
 
 		if !testIntegerObject(t, keyVal.Value, pair[1]) {
+			return false
+		}
+	}
+	return true
+}
+func testSetObject(t *testing.T, obj object.Object, expected []int64) bool {
+	mapObj, ok := obj.(*object.Set)
+	if !ok {
+		t.Errorf("expected object to be an Set, got %T", obj)
+		return false
+	}
+
+	if len(mapObj.Elements) != len(expected) {
+		t.Errorf("expected set with %d elements, got %d", len(mapObj.Elements), len(expected))
+		return false
+	}
+
+	for _, expElem := range expected {
+		intKey := &object.Integer{Value: expElem}
+		keyHash := intKey.HashKey()
+
+		elem, contains := mapObj.Elements[keyHash]
+
+		if !contains {
+			t.Errorf("expected to contain element with key %d", expElem)
+			return false
+		}
+
+		if !testIntegerObject(t, elem, expElem) {
 			return false
 		}
 	}

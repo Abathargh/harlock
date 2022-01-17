@@ -17,11 +17,12 @@ var (
 	FALSE = &object.Boolean{Value: false}
 
 	builtins = map[string]*object.Builtin{
-		"hex":   {Function: builtinHex},
-		"len":   {Function: builtinLen},
-		"set":   {Function: builtinSet},
-		"type":  {Function: builtinType},
-		"print": {Function: builtinPrint},
+		"hex":      {Function: builtinHex},
+		"len":      {Function: builtinLen},
+		"set":      {Function: builtinSet},
+		"type":     {Function: builtinType},
+		"print":    {Function: builtinPrint},
+		"contains": {Function: builtinContains},
 	}
 
 	builtinMethods = map[object.ObjectType]MethodMapping{
@@ -33,6 +34,10 @@ var (
 		object.MapObj: {
 			"set": mapBuiltinSet,
 			"pop": mapBuiltinPop,
+		},
+		object.SetObj: {
+			"add":    setBuiltinAdd,
+			"remove": setBuiltinRemove,
 		},
 	}
 )
@@ -166,6 +171,8 @@ func evalInfixExpression(operator string, left, right object.Object) object.Obje
 		return evalTypeInfixExpression(operator, left, right)
 	case object.ArrayObj:
 		return evalArrayInfixExpression(operator, left, right)
+	case object.MapObj:
+		return evalMapInfixExpression(operator, left, right)
 	case object.SetObj:
 		return evalSetInfixExpression(operator, left, right)
 	default:
@@ -359,6 +366,19 @@ func evalArrayInfixExpression(operator string, left, right object.Object) object
 	}
 }
 
+func evalMapInfixExpression(operator string, left, right object.Object) object.Object {
+	leftMap := left.(*object.Map)
+	rightMap := right.(*object.Map)
+	switch operator {
+	case "==":
+		return getBoolReference(mapEquals(leftMap, rightMap))
+	case "!=":
+		return getBoolReference(!mapEquals(leftMap, rightMap))
+	default:
+		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+	}
+}
+
 func evalSetInfixExpression(operator string, left, right object.Object) object.Object {
 	leftSet := left.(*object.Set)
 	rightSet := right.(*object.Set)
@@ -393,6 +413,10 @@ func evalSetInfixExpression(operator string, left, right object.Object) object.O
 			}
 		}
 		return set
+	case "==":
+		return getBoolReference(setEquals(leftSet, rightSet))
+	case "!=":
+		return getBoolReference(!setEquals(leftSet, rightSet))
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
@@ -577,6 +601,45 @@ func arrayEquals(obj1, obj2 *object.Array) bool {
 	for idx, elem := range obj1.Elements {
 		res := evalInfixExpression("==", elem, obj2.Elements[idx])
 		if res != TRUE {
+			return false
+		}
+	}
+	return true
+}
+
+func mapEquals(obj1, obj2 *object.Map) bool {
+	if obj1 == obj2 {
+		return true
+	}
+
+	if len(obj1.Mappings) != len(obj2.Mappings) {
+		return false
+	}
+
+	for _, pair := range obj1.Mappings {
+		hashable := pair.Key.(object.Hashable)
+		hashedKey := hashable.HashKey()
+		elemObj2, exists := obj2.Mappings[hashedKey]
+
+		if !exists || evalInfixExpression("==", pair.Value, elemObj2.Value) != TRUE {
+			return false
+		}
+	}
+	return true
+}
+
+func setEquals(obj1, obj2 *object.Set) bool {
+	if obj1 == obj2 {
+		return true
+	}
+
+	if len(obj1.Elements) != len(obj2.Elements) {
+		return false
+	}
+
+	for key, val := range obj1.Elements {
+		elemObj2, exists := obj2.Elements[key]
+		if !exists || evalInfixExpression("==", val, elemObj2) != TRUE {
 			return false
 		}
 	}

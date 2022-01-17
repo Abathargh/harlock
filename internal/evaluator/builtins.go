@@ -53,6 +53,8 @@ func builtinLen(args ...object.Object) object.Object {
 		return &object.Integer{Value: int64(len(elem.Elements))}
 	case *object.Map:
 		return &object.Integer{Value: int64(len(elem.Mappings))}
+	case *object.Set:
+		return &object.Integer{Value: int64(len(elem.Elements))}
 	default:
 		return newError("type error: type not supported")
 	}
@@ -130,4 +132,45 @@ func builtinSet(args ...object.Object) object.Object {
 		set.Elements[hash] = elem
 	}
 	return set
+}
+
+func builtinContains(args ...object.Object) object.Object {
+	if len(args) != 2 {
+		return newError("type error: contains requires two arguments, " +
+			"the container and the element to test")
+	}
+
+	switch cont := args[0].(type) {
+	case *object.Array:
+		for _, elem := range cont.Elements {
+			res := evalInfixExpression("==", args[1], elem)
+			boolRes := res.(*object.Boolean)
+			if boolRes.Value {
+				return TRUE
+			}
+		}
+		return FALSE
+	case *object.Map:
+		hashable, isHashable := args[1].(object.Hashable)
+		if !isHashable {
+			return newError("the passed key is not an hashable object")
+		}
+		_, contains := cont.Mappings[hashable.HashKey()]
+		if contains {
+			return TRUE
+		}
+		return FALSE
+	case *object.Set:
+		hashable, isHashable := args[1].(object.Hashable)
+		if !isHashable {
+			return newError("the passed key is not an hashable object")
+		}
+		_, contains := cont.Elements[hashable.HashKey()]
+		if contains {
+			return TRUE
+		}
+		return FALSE
+	default:
+		return newError("type error: the passed object is not a valid container")
+	}
 }
