@@ -166,6 +166,8 @@ func evalInfixExpression(operator string, left, right object.Object) object.Obje
 		return evalTypeInfixExpression(operator, left, right)
 	case object.ArrayObj:
 		return evalArrayInfixExpression(operator, left, right)
+	case object.SetObj:
+		return evalSetInfixExpression(operator, left, right)
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
@@ -352,6 +354,45 @@ func evalArrayInfixExpression(operator string, left, right object.Object) object
 		return getBoolReference(arrayEquals(leftArray, rightArray))
 	case "!=":
 		return getBoolReference(!arrayEquals(leftArray, rightArray))
+	default:
+		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+	}
+}
+
+func evalSetInfixExpression(operator string, left, right object.Object) object.Object {
+	leftSet := left.(*object.Set)
+	rightSet := right.(*object.Set)
+	set := &object.Set{Elements: make(map[object.HashKey]object.Object)}
+
+	switch operator {
+	case "+":
+		for key, elem := range leftSet.Elements {
+			set.Elements[key] = elem
+		}
+		for key, elem := range rightSet.Elements {
+			set.Elements[key] = elem
+		}
+		return set
+	case "-":
+		for key, elem := range leftSet.Elements {
+			set.Elements[key] = elem
+		}
+		for key := range rightSet.Elements {
+			delete(set.Elements, key)
+		}
+		return set
+	case "^":
+		for key, elem := range leftSet.Elements {
+			if _, contains := rightSet.Elements[key]; contains {
+				set.Elements[key] = elem
+			}
+		}
+		for key, elem := range rightSet.Elements {
+			if _, contains := leftSet.Elements[key]; contains {
+				set.Elements[key] = elem
+			}
+		}
+		return set
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}

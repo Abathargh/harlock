@@ -85,12 +85,10 @@ func builtinPrint(args ...object.Object) object.Object {
 }
 
 func builtinSet(args ...object.Object) object.Object {
-	if len(args) == 0 {
-		return newError("type error: not enough args, " +
-			"either pass a sequence or a variable number of hashable objects")
-	}
-
 	set := &object.Set{Elements: make(map[object.HashKey]object.Object)}
+	if len(args) == 0 {
+		return set
+	}
 
 	if len(args) == 1 {
 		switch seq := args[0].(type) {
