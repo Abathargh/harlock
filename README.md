@@ -103,12 +103,14 @@ s == "test string"
 s != "test strings"
 len(s) == 11
 hex("FF0102") == [255, 1, 2]
+
 # Arrays
 var arr = [1, 2, 3]
 arr[0] == 1
 arr.push(4)
 arr.pop()
 arr.slice(0, 1)
+contains(arr, 1)
 
 # Maps
 var m = {"test": value, 1: 23}
@@ -116,6 +118,14 @@ len(m) == 2
 m["test"] = value
 m.set("new", 12)
 m.pop("new")
+contains(m, "test")
+
+# Sets
+var s = set(1, 3, 5, 4)
+var s2 = set([1, 2, 4, 3, 4])
+s.add(10)
+s.remove(3)
+contains(s, 1)
 
 # Conditional expressions
 if x < y { ret x } else { ret y }
