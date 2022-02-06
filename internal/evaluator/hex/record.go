@@ -9,6 +9,7 @@ import (
 
 const (
 	startCode = 0x3A // ':'
+	dataIndex = 9
 
 	startCodeLen  = 1
 	byteCountLen  = 2
@@ -28,7 +29,7 @@ func (r RecordError) Error() string {
 const (
 	MissingStartCodeErr  = RecordError("the passed record does not start with the correct start code")
 	WrongRecordFormatErr = RecordError("the passed record is not a correct hex record")
-	WrongChecksumErr     = RecordError("the passed record has got an incorrect checksum")
+	DataOutOfBounds      = RecordError("the passed byte slice cannot be held by this record")
 	NoMoreRecordsErr     = RecordError("no more records")
 )
 
@@ -50,12 +51,17 @@ type Record struct {
 	data   []byte
 }
 
-func (r Record) RecordType() RecordType {
-	rType, err := hexToInt(r.data[7:9], false)
-	if err != nil || rType > uint64(InvalidRecord) {
-		return InvalidRecord
+func (r *Record) readData() []byte {
+	return r.data[dataIndex : dataIndex+r.length]
+}
+func (r *Record) writeData(start int, data []byte) error {
+	if start < 0 || start+len(data) > r.length {
+		return recordError(DataOutOfBounds, "%d > %d", start+len(data), r.length)
 	}
-	return RecordType(rType)
+	for idx, b := range data {
+		r.data[start+idx] = b
+	}
+	return nil
 }
 
 func parseRecord(input io.ByteReader) (*Record, error) {
@@ -84,10 +90,28 @@ func parseRecord(input io.ByteReader) (*Record, error) {
 			return nil, WrongRecordFormatErr
 		}
 	}
+
+	if !validateRecord(record) {
+		return nil, WrongRecordFormatErr
+	}
+
+	rType, err := hexToInt(record.data[7:9], true)
+	if err != nil || rType > uint64(InvalidRecord) {
+		return nil, WrongRecordFormatErr
+	}
+
+	length, _ := hexToInt(record.data[1:3], true)
+
+	record.rType = RecordType(rType)
+	record.length = int(length)
 	return record, nil
 }
 
 func validateRecord(rec *Record) bool {
+	// TODO Check ext seg addr byte count is 02 always
+	// TODO Check start seg addr byte count is 04 always/addr 0000
+	// TODO Check ext linear addr byte count is 02 always
+	// TODO Check start linear addr byte count is 04/addr 0000
 	recordLen := len(rec.data)
 	if recordLen < minLength {
 		return false
@@ -171,6 +195,6 @@ func checksumBytes(record []byte) ([2]byte, error) {
 }
 
 func recordError(err RecordError, msg string, args ...interface{}) error {
-	msgErr := fmt.Errorf("%w: msg", err)
+	msgErr := fmt.Errorf("%w: %s", err, msg)
 	return fmt.Errorf(msgErr.Error(), args...)
 }
