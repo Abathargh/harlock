@@ -1,4 +1,4 @@
-package main
+package hex
 
 import (
 	"fmt"
@@ -34,7 +34,7 @@ func (hf *HexFile) ReadAt(pos uint32, size int) ([]byte, error) {
 		case StartSegmentAddrRecord:
 			// Do nothing
 		case ExtendedSegmentAddrRecord:
-			data, err := hexToInt(record.readData(), false)
+			data, err := hexToInt(record.readData(), true)
 			if err != nil {
 				return nil, fmt.Errorf("invalid record data: %w", err)
 			}
@@ -42,17 +42,21 @@ func (hf *HexFile) ReadAt(pos uint32, size int) ([]byte, error) {
 		case StartLinearAddrRecord:
 			// Do nothing
 		case ExtendedLinearAddrRecord:
-			data, err := hexToInt(record.readData(), false)
+			data, err := hexToInt(record.readData(), true)
 			if err != nil {
 				return nil, fmt.Errorf("invalid record data: %w", err)
 			}
 			extendedBase := uint32(data)
 			hf.base = extendedBase << 16
+			// TODO exiting here => base =hf.base + start next addr of data record
+			// TODO use a flag that is checked at the beginning of a data record
 		case EOFRecord:
 			// Do nothing
 		case DataRecord:
 			uLen := uint32(record.length)
 			if pos >= hf.base && pos <= hf.base+uLen {
+				// this record contains the start of
+				// the data to read
 				retData := make([]byte, size)
 				start := pos - hf.base
 				end := start + uint32(size)
@@ -86,6 +90,7 @@ func (hf *HexFile) ReadAt(pos uint32, size int) ([]byte, error) {
 			pos += uint32(record.length)
 		}
 	}
+	// TODO add err
 	return nil, nil
 }
 

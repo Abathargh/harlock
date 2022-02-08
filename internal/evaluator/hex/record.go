@@ -1,4 +1,4 @@
-package main
+package hex
 
 import (
 	"encoding/binary"
@@ -52,7 +52,7 @@ type Record struct {
 }
 
 func (r *Record) readData() []byte {
-	return r.data[dataIndex : dataIndex+r.length]
+	return r.data[dataIndex : dataIndex+(r.length*2)]
 }
 func (r *Record) writeData(start int, data []byte) error {
 	if start < 0 || start+len(data) > r.length {
