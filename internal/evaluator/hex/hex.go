@@ -34,7 +34,7 @@ func (hf *HexFile) ReadAt(pos uint32, size int) ([]byte, error) {
 		case StartSegmentAddrRecord:
 			// Do nothing
 		case ExtendedSegmentAddrRecord:
-			data, err := hexToInt(record.readData(), true)
+			data, err := hexToInt(record.ReadData(), true)
 			if err != nil {
 				return nil, fmt.Errorf("invalid record data: %w", err)
 			}
@@ -42,7 +42,7 @@ func (hf *HexFile) ReadAt(pos uint32, size int) ([]byte, error) {
 		case StartLinearAddrRecord:
 			// Do nothing
 		case ExtendedLinearAddrRecord:
-			data, err := hexToInt(record.readData(), true)
+			data, err := hexToInt(record.ReadData(), true)
 			if err != nil {
 				return nil, fmt.Errorf("invalid record data: %w", err)
 			}
@@ -63,7 +63,7 @@ func (hf *HexFile) ReadAt(pos uint32, size int) ([]byte, error) {
 				if end > uLen {
 					end = uLen
 				}
-				copy(retData, record.readData()[start:end])
+				copy(retData, record.ReadData()[start:end])
 				written := int(end - start)
 				for written < size && idx != len(hf.records)-1 {
 					idx++
@@ -73,10 +73,10 @@ func (hf *HexFile) ReadAt(pos uint32, size int) ([]byte, error) {
 					}
 
 					if current.length > size-written {
-						copy(retData[written:], current.readData()[:size-written])
+						copy(retData[written:], current.ReadData()[:size-written])
 						written = size
 					} else {
-						copy(retData[written:], current.readData())
+						copy(retData[written:], current.ReadData())
 						written += current.length
 					}
 				}

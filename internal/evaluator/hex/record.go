@@ -51,11 +51,14 @@ type Record struct {
 	data   []byte
 }
 
-func (r *Record) readData() []byte {
+func (r *Record) ReadData() []byte {
+	if r.data == nil {
+		return nil
+	}
 	return r.data[dataIndex : dataIndex+(r.length*2)]
 }
-func (r *Record) writeData(start int, data []byte) error {
-	if start < 0 || start+len(data) > r.length {
+func (r *Record) WriteData(start int, data []byte) error {
+	if r.data == nil || start < 0 || start+len(data) > r.length {
 		return recordError(DataOutOfBounds, "%d > %d", start+len(data), r.length)
 	}
 	for idx, b := range data {
