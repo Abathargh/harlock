@@ -5,26 +5,26 @@ import (
 	"io"
 )
 
-type HexFile struct {
+type File struct {
 	base    uint32
 	records []*Record
 }
 
-func ReadAll(in io.ByteReader) (*HexFile, error) {
+func ReadAll(in io.ByteReader) (*File, error) {
 	// TODO add check for only one eof record
 	var records []*Record
-	rec, err := parseRecord(in)
-	for ; err == nil; rec, err = parseRecord(in) {
+	rec, err := ParseRecord(in)
+	for ; err == nil; rec, err = ParseRecord(in) {
 		records = append(records, rec)
 	}
 
 	if err == NoMoreRecordsErr && records[len(records)-1].rType == EOFRecord {
-		return &HexFile{base: 0, records: records}, nil
+		return &File{base: 0, records: records}, nil
 	}
 	return nil, err
 }
 
-func (hf *HexFile) ReadAt(pos uint32, size int) ([]byte, error) {
+func (hf *File) ReadAt(pos uint32, size int) ([]byte, error) {
 	if size < 1 {
 		return nil, fmt.Errorf("cannot read less than one byte")
 	}
@@ -94,10 +94,10 @@ func (hf *HexFile) ReadAt(pos uint32, size int) ([]byte, error) {
 	return nil, nil
 }
 
-func (hf *HexFile) WriteAt(pos int, data []byte) ([]byte, error) {
+func (hf *File) WriteAt(pos int, data []byte) ([]byte, error) {
 	return nil, nil
 }
 
-func (hf *HexFile) Contains(data []byte) bool {
+func (hf *File) Contains(data []byte) bool {
 	return false
 }

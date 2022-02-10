@@ -17,6 +17,18 @@ const (
 	recordTypeLen = 2
 	checksumLen   = 2
 
+	// Indexing the Byte Count field
+	lenIdx = 1
+	lenEnd = lenIdx + byteCountLen
+
+	// Indexing the Address field
+	addrIdx = lenEnd
+	addrEnd = addrIdx + addressLen
+
+	//Indexing the Record Type
+	typeIdx = addrEnd
+	typeEnd = typeIdx + recordTypeLen
+
 	minLength = startCodeLen + byteCountLen + addressLen + recordTypeLen + checksumLen
 )
 
@@ -45,31 +57,65 @@ const (
 	InvalidRecord
 )
 
+// Record is an HEX Record that has been validated.
+// Instantiate only via ParseRecord
 type Record struct {
 	length int
 	rType  RecordType
 	data   []byte
 }
 
+// ByteCount returned as an integer
+func (r *Record) ByteCount() int {
+	if r.data == nil {
+		return 0
+	}
+	return r.length
+}
+
+// Address is the record address value
+func (r *Record) Address() []byte {
+	if r.data == nil {
+		return nil
+	}
+	return r.data[addrIdx:addrEnd]
+}
+
+// ReadData returns the data section of the record
 func (r *Record) ReadData() []byte {
 	if r.data == nil {
 		return nil
 	}
 	return r.data[dataIndex : dataIndex+(r.length*2)]
 }
+
+// Checksum of the current record
+func (r *Record) Checksum() []byte {
+	if r.data == nil {
+		return nil
+	}
+	return r.data[dataIndex+(r.length*2):]
+}
+
+// WriteData is used to rewrite the data section of the record.
+// This method re-computes the record checksum automatically.
 func (r *Record) WriteData(start int, data []byte) error {
 	if r.data == nil || start < 0 || start+len(data) > r.length {
-		return recordError(DataOutOfBounds, "%d > %d", start+len(data), r.length)
+		return DataOutOfBounds
 	}
+
+	// TODO recalculate checksum
 	for idx, b := range data {
 		r.data[start+idx] = b
 	}
 	return nil
 }
 
-func parseRecord(input io.ByteReader) (*Record, error) {
+// ParseRecord initializes a new Record reading from a ByteReader.
+// This function returns an error if the byte stream that is read
+// does not represent a valid Record.
+func ParseRecord(input io.ByteReader) (*Record, error) {
 	record := &Record{}
-
 	curr, err := input.ReadByte()
 	if err != nil {
 		return nil, NoMoreRecordsErr
@@ -94,58 +140,74 @@ func parseRecord(input io.ByteReader) (*Record, error) {
 		}
 	}
 
-	if !validateRecord(record) {
+	isValid, rType, length := validateRecord(record)
+	if !isValid {
 		return nil, WrongRecordFormatErr
 	}
 
-	rType, err := hexToInt(record.data[7:9], true)
-	if err != nil || rType > uint64(InvalidRecord) {
-		return nil, WrongRecordFormatErr
-	}
-
-	length, _ := hexToInt(record.data[1:3], true)
-
-	record.rType = RecordType(rType)
-	record.length = int(length)
+	record.rType = rType
+	record.length = length
 	return record, nil
 }
 
-func validateRecord(rec *Record) bool {
-	// TODO Check ext seg addr byte count is 02 always
-	// TODO Check start seg addr byte count is 04 always/addr 0000
-	// TODO Check ext linear addr byte count is 02 always
-	// TODO Check start linear addr byte count is 04/addr 0000
+func validateRecord(rec *Record) (bool, RecordType, int) {
 	recordLen := len(rec.data)
 	if recordLen < minLength {
-		return false
+		return false, InvalidRecord, 0
 	}
 
 	dataLenBytes := make([]byte, 2)
-	if _, err := hex.Decode(dataLenBytes, rec.data[1:3]); err != nil {
-		return false
+	_, err := hex.Decode(dataLenBytes, rec.data[lenIdx:lenEnd])
+	if err != nil {
+		return false, InvalidRecord, 0
 	}
 
 	dataLen := binary.LittleEndian.Uint16(dataLenBytes)
 	if recordLen != int(minLength+(dataLen*2)) {
-		return false
+		return false, InvalidRecord, 0
 	}
 
 	c, err := checksum(rec.data)
 	if err != nil {
-		return false
+		return false, InvalidRecord, 0
 	}
 
-	h, err := hexToInt(rec.data[recordLen-2:recordLen], true)
+	h, err := hexToInt(rec.data[dataIndex+(rec.length*2):], true)
 	if err != nil || c != h {
-		return false
+		return false, InvalidRecord, 0
 	}
-	return true
+
+	rTypeUint, err := hexToInt(rec.data[typeIdx:typeEnd], true)
+	if err != nil || rTypeUint > uint64(InvalidRecord) {
+		return false, InvalidRecord, 0
+	}
+
+	rType := RecordType(rTypeUint)
+	switch rType {
+	case ExtendedSegmentAddrRecord:
+		fallthrough
+	case ExtendedLinearAddrRecord:
+		if dataLen != 2 {
+			return false, InvalidRecord, 0
+		}
+	case StartSegmentAddrRecord:
+		fallthrough
+	case StartLinearAddrRecord:
+		addr, err := hexToInt(rec.Address(), true)
+		if err != nil || dataLen != 4 || addr != 0 {
+			return false, InvalidRecord, 0
+		}
+	}
+
+	length, _ := hexToInt(rec.data[lenIdx:lenEnd], true)
+
+	return true, rType, int(length)
 }
 
 func hexToInt(data []byte, littleEndian bool) (uint64, error) {
 	dataLen := len(data)
 	if data == nil || dataLen > 8 {
-		return 0, recordError(WrongRecordFormatErr, "wrong byte width: %s", dataLen)
+		return 0, WrongRecordFormatErr
 	}
 	dataLenBytes := make([]byte, 8)
 	_, err := hex.Decode(dataLenBytes, data)
@@ -195,9 +257,4 @@ func checksumBytes(record []byte) ([2]byte, error) {
 	binary.LittleEndian.PutUint64(checksumCont, cs)
 	hex.Encode(hexStringChecksum[:], checksumCont[0:1])
 	return hexStringChecksum, nil
-}
-
-func recordError(err RecordError, msg string, args ...interface{}) error {
-	msgErr := fmt.Errorf("%w: %s", err, msg)
-	return fmt.Errorf(msgErr.Error(), args...)
 }
