@@ -34,7 +34,7 @@ func (hf *File) ReadAt(pos uint32, size int) ([]byte, error) {
 		case StartSegmentAddrRecord:
 			// Do nothing
 		case ExtendedSegmentAddrRecord:
-			data, err := hexToInt(record.ReadData(), true)
+			data, err := hexToInt[uint16](record.ReadData(), true)
 			if err != nil {
 				return nil, fmt.Errorf("invalid record data: %w", err)
 			}
@@ -42,7 +42,7 @@ func (hf *File) ReadAt(pos uint32, size int) ([]byte, error) {
 		case StartLinearAddrRecord:
 			// Do nothing
 		case ExtendedLinearAddrRecord:
-			data, err := hexToInt(record.ReadData(), true)
+			data, err := hexToInt[uint16](record.ReadData(), true)
 			if err != nil {
 				return nil, fmt.Errorf("invalid record data: %w", err)
 			}

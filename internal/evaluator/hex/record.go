@@ -5,51 +5,47 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"regexp/syntax"
+	"unsafe"
 )
 
 const (
-	startCode = 0x3A // ':'
-	dataIndex = 9
+	startCode = 0x3A // The ':' character
 
-	startCodeLen  = 1
-	byteCountLen  = 2
-	addressLen    = 4
-	recordTypeLen = 2
-	checksumLen   = 2
+	// Length for the Start Code field
+	startCodeLen = 1
 
-	// Indexing the Byte Count field
-	lenIdx = 1
-	lenEnd = lenIdx + byteCountLen
+	// Length and indexes for the Byte Count field
+	countLen = 2
+	countIdx = 1
+	countEnd = countIdx + countLen
 
-	// Indexing the Address field
-	addrIdx = lenEnd
-	addrEnd = addrIdx + addressLen
+	// Length and indexes for  the Address field
+	addrLen = 4
+	addrIdx = countEnd
+	addrEnd = addrIdx + addrLen
 
-	//Indexing the Record Type
+	// Length and indexes for  the Record field
+	typeLen = 2
 	typeIdx = addrEnd
-	typeEnd = typeIdx + recordTypeLen
+	typeEnd = typeIdx + typeLen
 
-	minLength = startCodeLen + byteCountLen + addressLen + recordTypeLen + checksumLen
+	// Index for the Data field
+	dataIdx = 9
+
+	// Length for the Checksum field
+	checksumLen = 2
+
+	// Minimal Length for the whole word (e.g. EOF record)
+	minLength = startCodeLen + countLen + addrLen + typeLen + checksumLen
 )
 
-type RecordError string
-
-func (r RecordError) Error() string {
-	return string(r)
-}
-
-const (
-	MissingStartCodeErr  = RecordError("the passed record does not start with the correct start code")
-	WrongRecordFormatErr = RecordError("the passed record is not a correct hex record")
-	DataOutOfBounds      = RecordError("the passed byte slice cannot be held by this record")
-	NoMoreRecordsErr     = RecordError("no more records")
-)
-
+// RecordType identifies the type of hex record (Data, EOF, etc.)
 type RecordType uint
 
 const (
-	DataRecord RecordType = iota
-	EOFRecord
+	DataRecord RecordType = iota // A DataRecord contains data in hex format
+	EOFRecord                    // An EOFRecord identifies the end of a hex file
 	ExtendedSegmentAddrRecord
 	StartSegmentAddrRecord
 	ExtendedLinearAddrRecord
@@ -73,12 +69,34 @@ func (r *Record) ByteCount() int {
 	return r.length
 }
 
-// Address is the record address value
-func (r *Record) Address() []byte {
+// AddressBytes is the hex representation of
+// the record address value
+func (r *Record) AddressBytes() []byte {
 	if r.data == nil {
 		return nil
 	}
 	return r.data[addrIdx:addrEnd]
+}
+
+// Address is the record address value
+func (r *Record) Address() uint16 {
+	if r.data == nil {
+		return 0
+	}
+
+	addr, err := hexToInt[uint16](r.data[addrIdx:addrEnd], false)
+	if err != nil {
+		return 0
+	}
+	return addr
+}
+
+// Type is the record type
+func (r *Record) Type() RecordType {
+	if r.data == nil {
+		return InvalidRecord
+	}
+	return r.rType
 }
 
 // ReadData returns the data section of the record
@@ -86,7 +104,7 @@ func (r *Record) ReadData() []byte {
 	if r.data == nil {
 		return nil
 	}
-	return r.data[dataIndex : dataIndex+(r.length*2)]
+	return r.data[dataIdx : dataIdx+(r.length*2)]
 }
 
 // Checksum of the current record
@@ -94,20 +112,30 @@ func (r *Record) Checksum() []byte {
 	if r.data == nil {
 		return nil
 	}
-	return r.data[dataIndex+(r.length*2):]
+	return r.data[dataIdx+(r.length*2):]
 }
 
 // WriteData is used to rewrite the data section of the record.
 // This method re-computes the record checksum automatically.
 func (r *Record) WriteData(start int, data []byte) error {
-	if r.data == nil || start < 0 || start+len(data) > r.length {
+	if r.data == nil || start < 0 || start+len(data) > (2*r.length) {
 		return DataOutOfBounds
 	}
 
-	// TODO recalculate checksum
-	for idx, b := range data {
-		r.data[start+idx] = b
+	for _, b := range data {
+		if !syntax.IsWordChar(rune(b)) {
+			return InvalidHexDigit
+		}
 	}
+
+	copy(r.data[dataIdx+start:], data)
+	newSum, err := checksumBytes(r.data)
+	if err != nil {
+		return err
+	}
+
+	copy(r.data[dataIdx+(r.length*2):], newSum)
+
 	return nil
 }
 
@@ -150,6 +178,7 @@ func ParseRecord(input io.ByteReader) (*Record, error) {
 	return record, nil
 }
 
+// validateRecord validates a Record that is being parsed
 func validateRecord(rec *Record) (bool, RecordType, int) {
 	recordLen := len(rec.data)
 	if recordLen < minLength {
@@ -157,7 +186,7 @@ func validateRecord(rec *Record) (bool, RecordType, int) {
 	}
 
 	dataLenBytes := make([]byte, 2)
-	_, err := hex.Decode(dataLenBytes, rec.data[lenIdx:lenEnd])
+	_, err := hex.Decode(dataLenBytes, rec.data[countIdx:countEnd])
 	if err != nil {
 		return false, InvalidRecord, 0
 	}
@@ -172,13 +201,13 @@ func validateRecord(rec *Record) (bool, RecordType, int) {
 		return false, InvalidRecord, 0
 	}
 
-	h, err := hexToInt(rec.data[dataIndex+(rec.length*2):], true)
+	h, err := hexToInt[uint8](rec.data[dataIdx+(dataLen*2):], true)
 	if err != nil || c != h {
 		return false, InvalidRecord, 0
 	}
 
-	rTypeUint, err := hexToInt(rec.data[typeIdx:typeEnd], true)
-	if err != nil || rTypeUint > uint64(InvalidRecord) {
+	rTypeUint, err := hexToInt[uint8](rec.data[typeIdx:typeEnd], true)
+	if err != nil || rTypeUint > uint8(InvalidRecord) {
 		return false, InvalidRecord, 0
 	}
 
@@ -193,39 +222,55 @@ func validateRecord(rec *Record) (bool, RecordType, int) {
 	case StartSegmentAddrRecord:
 		fallthrough
 	case StartLinearAddrRecord:
-		addr, err := hexToInt(rec.Address(), true)
+		addr := rec.Address()
 		if err != nil || dataLen != 4 || addr != 0 {
 			return false, InvalidRecord, 0
 		}
 	}
 
-	length, _ := hexToInt(rec.data[lenIdx:lenEnd], true)
+	byteCount, _ := hexToInt[uint8](rec.data[countIdx:countEnd], true)
 
-	return true, rType, int(length)
+	return true, rType, int(byteCount)
 }
 
-func hexToInt(data []byte, littleEndian bool) (uint64, error) {
+// Unsigned is a constraint for unsigned integers
+// with explicit bit-width.
+type Unsigned interface {
+	uint8 | uint16 | uint32 | uint64
+}
+
+// hexToInt decodes a byte array with len < 16 into the corresponding
+// unsigned integer passed as type parameter, with the specified
+// endianness.
+func hexToInt[U Unsigned](data []byte, littleEndian bool) (U, error) {
 	dataLen := len(data)
-	if data == nil || dataLen > 8 {
-		return 0, WrongRecordFormatErr
+	if data == nil || dataLen > 16 {
+		return U(0), fmt.Errorf("err")
 	}
-	dataLenBytes := make([]byte, 8)
+
+	size := unsafe.Sizeof(U(0))
+	dataLenBytes := make([]byte, size)
 	_, err := hex.Decode(dataLenBytes, data)
 	if err != nil {
-		return 0, err
+		return U(0), err
 	}
 
-	var endianness binary.ByteOrder
+	ret := U(0)
+	intSize := len(dataLenBytes)
 	if littleEndian {
-		endianness = binary.LittleEndian
+		for i := 0; i < intSize; i++ {
+			ret |= U(dataLenBytes[i]) << (i * 8)
+		}
 	} else {
-		endianness = binary.BigEndian
+		for i := 0; i < intSize; i++ {
+			ret |= U(dataLenBytes[intSize-1-i]) << (i * 8)
+		}
 	}
-
-	return endianness.Uint64(dataLenBytes), nil
+	return ret, nil
 }
 
-func checksum(record []byte) (uint64, error) {
+// checksum computes the checksum for a record
+func checksum(record []byte) (byte, error) {
 	var cs uint64
 	start := 0
 	end := len(record) - 2
@@ -244,17 +289,15 @@ func checksum(record []byte) (uint64, error) {
 	}
 
 	cs = uint64(^byte(hexChecksum&0xFF) + 1)
-	return cs, nil
+	return byte(cs), nil
 }
 
-func checksumBytes(record []byte) ([2]byte, error) {
-	var hexStringChecksum [2]byte
-	checksumCont := make([]byte, 8)
+func checksumBytes(record []byte) ([]byte, error) {
+	hexSum := make([]byte, checksumLen)
 	cs, err := checksum(record)
 	if err != nil {
-		return hexStringChecksum, err
+		return hexSum, err
 	}
-	binary.LittleEndian.PutUint64(checksumCont, cs)
-	hex.Encode(hexStringChecksum[:], checksumCont[0:1])
-	return hexStringChecksum, nil
+	hex.Encode(hexSum, []byte{cs})
+	return hexSum, nil
 }
