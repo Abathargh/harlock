@@ -27,10 +27,9 @@ func (r FileError) Error() string {
 }
 
 // CustomError returns FileError that can use the classic fmt message/varargs.
-func CustomError(original FileError, msg string, args ...any) FileError {
-	augArgs := []any{original, msg}
-	augArgs = append(augArgs, args...)
-	return FileError(fmt.Sprintf("%w: %s", augArgs...))
+func CustomError(original FileError, msg string, args ...any) error {
+	nested := fmt.Sprintf(msg, args...)
+	return fmt.Errorf("%w: %s", original, nested)
 }
 
 const (
