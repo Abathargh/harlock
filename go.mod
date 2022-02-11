@@ -1,3 +1,3 @@
 module github.com/Abathargh/harlock
 
-go 1.17
+go 1.18
