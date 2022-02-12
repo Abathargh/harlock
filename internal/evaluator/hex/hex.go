@@ -12,7 +12,7 @@ type File struct {
 type recordView struct {
 	start    int
 	firstIdx int
-	records  []Record
+	records  []*Record
 }
 
 func ReadAll(in io.ByteReader) (*File, error) {
@@ -46,22 +46,22 @@ func (hf *File) ReadAt(pos uint32, size int) ([]byte, error) {
 	hexData := make([]byte, hexSize)
 
 	for idx, record := range block.records {
-		recordData := record.ReadData()
+		recData := record.ReadData()
 		if idx == 0 && block.start != 0 {
-			if block.start+hexSize < len(recordData) {
-				copy(hexData, recordData[block.start:block.start+hexSize])
+			if block.start+hexSize < len(recData) {
+				copy(hexData, recData[block.start:block.start+hexSize])
 				break
 			}
-			copy(hexData, recordData[block.start:])
-			written += len(recordData) - block.start
+			copy(hexData, recData[block.start:])
+			written += len(recData) - block.start
 			continue
 		}
 
 		if record.length > hexSize-written {
-			copy(hexData[written:], recordData[:hexSize-written])
+			copy(hexData[written:], recData[:hexSize-written])
 			break
 		} else {
-			copy(hexData[written:], recordData)
+			copy(hexData[written:], recData)
 			written += record.length * 2
 		}
 	}
@@ -72,11 +72,38 @@ func (hf *File) ReadAt(pos uint32, size int) ([]byte, error) {
 }
 
 func (hf *File) WriteAt(pos uint32, data []byte) error {
-	return nil
-}
+	block, err := hf.accessFileAt(pos, len(data))
+	if err != nil {
+		return err
+	}
 
-func (hf *File) Contains(data []byte) bool {
-	return false
+	written := 0
+	hexSize := len(data) * 2
+	hexData := make([]byte, hexSize)
+	hex.Encode(hexData, data)
+
+	for idx, record := range block.records {
+		recData := record.ReadData()
+		if idx == 0 && block.start != 0 {
+			if block.start+hexSize < len(recData) {
+				copy(recData[block.start:], hexData[:block.start+hexSize])
+				break
+			}
+			copy(recData[block.start:], hexData[:len(recData)-block.start])
+			written += len(recData) - block.start
+			continue
+		}
+
+		if record.length > hexSize-written {
+			copy(recData, hexData[written:hexSize])
+			break
+		} else {
+			copy(recData, hexData[written:written+len(recData)])
+			written += record.length * 2
+		}
+	}
+
+	return nil
 }
 
 func (hf *File) accessFileAt(pos uint32, size int) (*recordView, error) {
@@ -136,7 +163,7 @@ func (hf *File) accessFileAt(pos uint32, size int) (*recordView, error) {
 				// put the first record in the view
 				block.start = int((pos - base) * 2)
 				block.firstIdx = idx
-				block.records = append(block.records, *record)
+				block.records = append(block.records, record)
 
 				alreadyAccessedLen := int(end - start)
 
@@ -149,7 +176,7 @@ func (hf *File) accessFileAt(pos uint32, size int) (*recordView, error) {
 						return nil, CustomError(AccessOutOfBounds,
 							"no data with %d size found at @%d", size, pos)
 					}
-					block.records = append(block.records, *current)
+					block.records = append(block.records, current)
 					alreadyAccessedLen += current.length
 				}
 
