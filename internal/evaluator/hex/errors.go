@@ -36,4 +36,5 @@ const (
 	MultipleEofErr    = FileError("the passed hex file contains more than one EOF records")
 	NoEofRecordErr    = FileError("the passed hex file does not contain an EOF record")
 	AccessOutOfBounds = FileError("cannot access the hex file out of the length of the encoded program")
+	RecordErr         = FileError("faulty record")
 )
