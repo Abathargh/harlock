@@ -1,7 +1,10 @@
 package evaluator
 
 import (
+	"bufio"
 	"fmt"
+	"github.com/Abathargh/harlock/internal/evaluator/hex"
+	"os"
 	"strconv"
 
 	"github.com/Abathargh/harlock/internal/object"
@@ -172,5 +175,44 @@ func builtinContains(args ...object.Object) object.Object {
 		return FALSE
 	default:
 		return newError("type error: the passed object is not a valid container")
+	}
+}
+
+func builtinOpen(args ...object.Object) object.Object {
+	if len(args) != 2 {
+		return newError("type error: open requires two arguments, " +
+			"the input file and a string with the type of file")
+	}
+
+	filename, isString := args[0].(*object.String)
+	if !isString {
+		return newError("type error: expected a string with the file name "+
+			"got %T", args[0])
+	}
+
+	fileType, isString := args[1].(*object.String)
+	if !isString {
+		return newError("type error: expected a string with the file type "+
+			"got %T", args[0])
+	}
+
+	switch fileType.Value {
+	case "hex":
+		file, err := os.Open(filename.Value)
+		if err != nil {
+			return newError("file error: could not open file %q", filename.Value)
+		}
+		defer file.Close()
+
+		hexFile, err := hex.ReadAll(bufio.NewReader(file))
+		if err != nil {
+			return newError("file error: %s", err)
+		}
+		return &object.HexFile{
+			Name: file.Name(),
+			File: hexFile,
+		}
+	default:
+		return newError("type error: not implemented")
 	}
 }

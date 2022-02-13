@@ -21,6 +21,7 @@ var (
 		"len":      {Function: builtinLen},
 		"set":      {Function: builtinSet},
 		"type":     {Function: builtinType},
+		"open":     {Function: builtinOpen},
 		"print":    {Function: builtinPrint},
 		"contains": {Function: builtinContains},
 	}
@@ -38,6 +39,12 @@ var (
 		object.SetObj: {
 			"add":    setBuiltinAdd,
 			"remove": setBuiltinRemove,
+		},
+		object.HexObj: {
+			"record":   hexBuiltinRecord,
+			"size":     hexBuiltinSize,
+			"read_at":  hexBuiltinReadAt,
+			"write_at": hexBuiltinWriteAt,
 		},
 	}
 )
