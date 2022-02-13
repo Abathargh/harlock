@@ -145,6 +145,14 @@ var iter_func = fun(arr, func) {
 
 iter_func(arr, print)
 print("test")
+
+# Hex files
+var h = open("test.hex", "hex")
+print(h)
+h.size()
+h.record(0) 
+h.write_at(0x1000, hex("DEADBEEF"))
+h.read_at(0x1000, 4)
 ```
 
 
