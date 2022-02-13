@@ -3,6 +3,8 @@ package evaluator
 import (
 	"bufio"
 	"bytes"
+	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 
@@ -389,6 +391,48 @@ func TestArrayIndexExpressions(t *testing.T) {
 	}
 }
 
+func TestHexFile(t *testing.T) {
+	hexFile := `:020000021000EC
+:10C20000E0A5E6F6FDFFE0AEE00FE6FCFDFFE6FD93
+:10C21000FFFFF6F50EFE4B66F2FA0CFEF2F40EFE90
+:10C22000F04EF05FF06CF07DCA0050C2F086F097DF
+:10C23000F04AF054BCF5204830592D02E018BB03F9
+:020000022000DC
+:04000000FA00000200
+:00000001FF
+`
+
+	input := `open("test.hex", "hex")`
+
+	err := ioutil.WriteFile("test.hex", []byte(hexFile), 0666)
+	if err != nil {
+		t.Fatalf("cannot create the test.hex file")
+	}
+	defer func() { _ = os.Remove("test.hex") }()
+
+	evaluated := testEval(input)
+	hex, ok := evaluated.(*object.HexFile)
+	if !ok {
+		t.Fatalf("expected object of HexFile type, got %T: %v", evaluated, evaluated)
+	}
+
+	if hex.Name != "test.hex" {
+		t.Fatalf("expected file to have \"test.hex\" as its name, got %q", hex.Name)
+	}
+
+	if hex.File.Size() != 8 {
+		t.Fatalf("expected file to have 8 records, got %d", hex.File.Size())
+	}
+
+	rows := strings.Split(hexFile, "\n")
+	for idx, recordString := range rows[:len(rows)-1] {
+		currentStrRecord := hex.File.Record(idx).AsString()
+		if currentStrRecord != recordString {
+			t.Errorf("expected record[%d] = %q, gt %q",
+				idx, recordString, currentStrRecord)
+		}
+	}
+}
 func TestMapLiterals(t *testing.T) {
 	input := `var test = 22
 {
@@ -477,6 +521,90 @@ func TestMapBuiltinMethods(t *testing.T) {
 	for _, testCase := range tests {
 		evalMapBuiltin := testEval(testCase.input)
 		testMapObject(t, evalMapBuiltin, testCase.expected)
+	}
+}
+
+func TestHexFileBuiltinMethods(t *testing.T) {
+	hexFile := `:020000021000EC
+:10C20000E0A5E6F6FDFFE0AEE00FE6FCFDFFE6FD93
+:10C21000FFFFF6F50EFE4B66F2FA0CFEF2F40EFE90
+:10C22000F04EF05FF06CF07DCA0050C2F086F097DF
+:10C23000F04AF054BCF5204830592D02E018BB03F9
+:020000022000DC
+:04000000FA00000200
+:00000001FF
+`
+	tests := []struct {
+		input    string
+		expected any
+	}{
+		{
+			`var h = open("test.hex", "hex")
+h.record(2)`,
+			":10C21000FFFFF6F50EFE4B66F2FA0CFEF2F40EFE90",
+		},
+		{
+			`var h = open("test.hex", "hex")
+h.size()`,
+			int64(8),
+		},
+		{
+			`var h = open("test.hex", "hex")
+h.read_at(0x1000*16 + 0xC200, 2)`,
+			[]int64{0xE0, 0xA5},
+		},
+		{
+			`var h = open("test.hex", "hex")
+h.write_at(0x2000*16, hex("DEADBEEF"))
+h.read_at(0x2000*16, 4)`,
+			[]int64{0xDE, 0xAD, 0xBE, 0xEF},
+		},
+	}
+
+	err := ioutil.WriteFile("test.hex", []byte(hexFile), 0666)
+	if err != nil {
+		t.Fatalf("cannot create the test.hex file")
+	}
+	defer func() { _ = os.Remove("test.hex") }()
+
+	for _, testCase := range tests {
+		evalHexBuiltin := testEval(testCase.input)
+		switch expected := testCase.expected.(type) {
+		case string:
+			evalString, isString := evalHexBuiltin.(*object.String)
+			if !isString {
+				t.Fatalf("expected string, got %T", evalHexBuiltin)
+			}
+
+			if expected != evalString.Value {
+				t.Fatalf("expected string = %q, got %q", expected, evalString.Value)
+			}
+		case []int64:
+			evalArr, isArr := evalHexBuiltin.(*object.Array)
+			if !isArr {
+				t.Fatalf("expected array, got %T: %v", evalHexBuiltin, evalHexBuiltin)
+			}
+
+			for idx, elem := range evalArr.Elements {
+				intElem, isInt := elem.(*object.Integer)
+				if !isInt {
+					t.Fatalf("expected int, got %T", elem)
+				}
+
+				if idx > len(expected) || intElem.Value != expected[idx] {
+					t.Fatalf("expected %v, got %d", expected, intElem.Value)
+				}
+			}
+		case int64:
+			evalInt, isInt := evalHexBuiltin.(*object.Integer)
+			if !isInt {
+				t.Fatalf("expected int, got %T", evalHexBuiltin)
+			}
+
+			if expected != evalInt.Value {
+				t.Fatalf("expected size = %q, got %q", expected, evalInt.Value)
+			}
+		}
 	}
 }
 

@@ -2,6 +2,7 @@ package object
 
 import (
 	"fmt"
+	"github.com/Abathargh/harlock/internal/evaluator/hex"
 	"hash/fnv"
 	"strings"
 
@@ -15,6 +16,7 @@ const (
 	TypeObj        = "Type"
 	SetObj         = "Set"
 	MapObj         = "Map"
+	HexObj         = "Hex File"
 	FileObj        = "File"
 	ErrorObj       = "Error"
 	ArrayObj       = "Array"
@@ -261,5 +263,28 @@ func (s *Set) Inspect() string {
 	buf.WriteString("set(")
 	buf.WriteString(strings.Join(elements, ", "))
 	buf.WriteString(")")
+	return buf.String()
+}
+
+type HexFile struct {
+	Name string
+	File *hex.File
+}
+
+func (hf *HexFile) Type() ObjectType {
+	return HexObj
+}
+
+func (hf *HexFile) Inspect() string {
+	var buf strings.Builder
+	var records []string
+
+	for idx := 0; idx < hf.File.Size(); idx++ {
+		records = append(records, hf.File.Record(idx).AsString())
+	}
+
+	buf.WriteString("HexFile{\n")
+	buf.WriteString(strings.Join(records, "\n"))
+	buf.WriteString("}")
 	return buf.String()
 }
