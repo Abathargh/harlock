@@ -5,16 +5,21 @@ import (
 	"io"
 )
 
+// File implements an Intel Hex-encoded file
 type File struct {
 	records []*Record
 }
 
+// recordView is an internal struct used to
+// abstract data accesses to the hex file
 type recordView struct {
 	start    int
 	firstIdx int
 	records  []*Record
 }
 
+// ReadAll initializes a hex file by reading every byte
+// from its source, parsing the records and validating them
 func ReadAll(in io.ByteReader) (*File, error) {
 	eof := false
 	var records []*Record
@@ -35,8 +40,24 @@ func ReadAll(in io.ByteReader) (*File, error) {
 	return nil, NoEofRecordErr
 }
 
+// Size returns the number of records in the file
+func (hf *File) Size() int {
+	return len(hf.records)
+}
+
+// Record returns the idx-th record or nil if it does not exist
+func (hf *File) Record(idx int) *Record {
+	if idx < 0 || idx >= len(hf.records) {
+		return nil
+	}
+	return hf.records[idx]
+}
+
+// ReadAt reads size bytes starting from pos position in the
+// hex-encoded file. This implements a sort of random access
+// to the data mapped in hex-format.
 func (hf *File) ReadAt(pos uint32, size int) ([]byte, error) {
-	block, err := hf.accessFileAt(pos, size)
+	block, err := hf.accessAt(pos, size)
 	if err != nil {
 		return nil, err
 	}
@@ -71,8 +92,11 @@ func (hf *File) ReadAt(pos uint32, size int) ([]byte, error) {
 	return byteData, nil
 }
 
+// WriteAt writes len(data) bytes starting from pos position
+// onto the hex-encoded file. The written bytes are passed
+// through the data parameter.
 func (hf *File) WriteAt(pos uint32, data []byte) error {
-	block, err := hf.accessFileAt(pos, len(data))
+	block, err := hf.accessAt(pos, len(data))
 	if err != nil {
 		return err
 	}
@@ -106,7 +130,10 @@ func (hf *File) WriteAt(pos uint32, data []byte) error {
 	return nil
 }
 
-func (hf *File) accessFileAt(pos uint32, size int) (*recordView, error) {
+// accessAt implements a generic random access feature for hex files
+// by returning a recordView that refers to a block of contiguous
+// records that span through the [pos; pos+size] interval.
+func (hf *File) accessAt(pos uint32, size int) (*recordView, error) {
 	if size < 1 {
 		// Empty array => no op
 		return &recordView{}, nil

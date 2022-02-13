@@ -61,6 +61,14 @@ type Record struct {
 	data   []byte
 }
 
+// AsString returns a string representation of the record
+func (r *Record) AsString() string {
+	if r.data == nil {
+		return ""
+	}
+	return string(r.data)
+}
+
 // ByteCount returned as an integer
 func (r *Record) ByteCount() int {
 	if r.data == nil {

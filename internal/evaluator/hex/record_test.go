@@ -50,6 +50,32 @@ func TestParseRecord(t *testing.T) {
 	}
 }
 
+func TestAsString(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{":020000021000EC\r\n", ":020000021000EC"},
+		{":06058000000A000000006B\r\n", ":06058000000A000000006B"},
+		{":00000001FF\r\n", ":00000001FF"},
+	}
+	empty := &Record{}
+	if empty.AsString() != "" {
+		t.Errorf("expected non initialized record to have an empty string repr, got %s", empty.AsString())
+	}
+
+	for _, testCase := range tests {
+		rec, err := ParseRecord(bytes.NewBufferString(testCase.input))
+		if err != nil {
+
+		}
+		strRep := rec.AsString()
+		if strRep != testCase.expected {
+			t.Errorf("expected str repr = %q, got %q", testCase.expected, strRep)
+		}
+	}
+}
+
 func TestByteCount(t *testing.T) {
 	tests := []struct {
 		input    string
@@ -71,7 +97,7 @@ func TestByteCount(t *testing.T) {
 		}
 		count := rec.ByteCount()
 		if count != testCase.expected {
-			t.Errorf("expected byte count = %d, got %d", count, testCase.expected)
+			t.Errorf("expected byte count = %d, got %d", testCase.expected, count)
 		}
 	}
 }
