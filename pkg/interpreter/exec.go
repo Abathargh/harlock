@@ -21,7 +21,7 @@ var Version = ""
 // sends the generated output to the passed writer. If the parsing
 // phase fails, it returns an array of string containing the parsing
 // errors, or nil otherwise.
-func Exec(r io.Reader, output io.Writer, args ...string) []string {
+func Exec(r io.Reader, stderr io.Writer, args ...string) []string {
 	env := object.NewEnvironment()
 	l := lexer.NewLexer(bufio.NewReader(r))
 	p := parser.NewParser(l)
@@ -40,8 +40,8 @@ func Exec(r io.Reader, output io.Writer, args ...string) []string {
 	evaluatedProg := evaluator.Eval(program, env)
 	if evaluatedProg != nil {
 		if _, ok := evaluatedProg.(*object.Error); ok {
-			_, _ = io.WriteString(output, evaluatedProg.Inspect())
-			_, _ = io.WriteString(output, "\n")
+			_, _ = io.WriteString(stderr, evaluatedProg.Inspect())
+			_, _ = io.WriteString(stderr, "\n")
 		}
 	}
 	return nil

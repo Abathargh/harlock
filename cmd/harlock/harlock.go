@@ -56,7 +56,7 @@ func main() {
 			_, _ = io.WriteString(os.Stderr, err.Error()+"\n")
 		}
 
-		errs := interpreter.Exec(f, os.Stdout, fs.Args()...)
+		errs := interpreter.Exec(f, os.Stderr, fs.Args()...)
 		if errs != nil {
 			for _, err := range errs {
 				_, _ = io.WriteString(os.Stderr, fmt.Sprintf("%s\n", err))

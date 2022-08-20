@@ -127,7 +127,7 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return evalMethodExpression(currentNode, env)
 	case *ast.TryExpression:
 		exprValue := Eval(currentNode.Expression, env)
-		if isError(exprValue) && env.IsNestedBlock() {
+		if isError(exprValue) {
 			return &object.ReturnValue{Value: exprValue}
 		}
 		return exprValue
