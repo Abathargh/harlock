@@ -2,7 +2,6 @@ package interpreter
 
 import (
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"runtime"
@@ -41,9 +40,9 @@ func Embed(filename string) error {
 	if err != nil {
 		return err
 	}
-	_ = os.Mkdir("tmp", 666)
-	_ = os.WriteFile("tmp/main.go", []byte(program), 666)
-	defer func() { _ = os.RemoveAll("./tmp") }()
+	_ = os.Mkdir("./temp", 0775)
+	_ = os.WriteFile("./temp/main.go", []byte(program), 0775)
+	defer func() { _ = os.RemoveAll("./temp") }()
 
 	modCmd := command("go", "mod", "init", "embedded_harlock")
 	if err := modCmd.Run(); err != nil {
@@ -60,7 +59,7 @@ func Embed(filename string) error {
 		return err
 	}
 
-	tmpName := "./tmp/embedded_harlock"
+	tmpName := "./temp/embedded_harlock"
 	execName := "./" + strings.Split(filename, ".")[0]
 	if runtime.GOOS == "windows" {
 		tmpName += ".exe"
@@ -74,7 +73,7 @@ func Embed(filename string) error {
 }
 
 func buildEmbeddedProgram(filename string) (string, error) {
-	fileContents, err := ioutil.ReadFile(filename)
+	fileContents, err := os.ReadFile(filename)
 	if err != nil {
 		return "", err
 	}
@@ -85,7 +84,7 @@ func command(c string, args ...string) *exec.Cmd {
 	cmd := exec.Command(c, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.Dir = "./tmp"
+	cmd.Dir = "./temp"
 	return cmd
 }
 
