@@ -144,7 +144,6 @@ func (hf *File) accessAt(pos uint32, size int) (*recordView, error) {
 	base := uint32(0)
 	block := &recordView{}
 
-	fromExtendedRec := false
 	for idx, record := range hf.records {
 		switch record.rType {
 		case StartSegmentAddrRecord:
@@ -155,7 +154,6 @@ func (hf *File) accessAt(pos uint32, size int) (*recordView, error) {
 				return nil, RecordErr
 			}
 			base = uint32(data) * 16
-			fromExtendedRec = true
 		case StartLinearAddrRecord:
 			// Do nothing
 		case ExtendedLinearAddrRecord:
@@ -165,30 +163,24 @@ func (hf *File) accessAt(pos uint32, size int) (*recordView, error) {
 			}
 			extendedBase := uint32(data)
 			base = extendedBase << 16
-			fromExtendedRec = true
 		case EOFRecord:
 			// Do nothing
 		case DataRecord:
-			// if the earlier record is an extended record the cursor must
-			// re-based onto the start of this data address
-			if fromExtendedRec {
-				base += uint32(record.Address())
-				fromExtendedRec = false
-			}
 			uLen := uint32(record.length) * 2
+			recordBase := uint32(record.Address()) + base
 
 			// Found the record where the access should begin
-			if pos >= base && pos <= base+uLen {
+			if pos >= recordBase && pos < recordBase+uLen {
 				// these checks are needed to know if the access
 				// should stop at the first record
-				start := (pos - base) * 2
+				start := (pos - recordBase) * 2
 				end := start + uint32(size)
 				if end > uLen {
 					end = uLen
 				}
 
 				// put the first record in the view
-				block.start = int((pos - base) * 2)
+				block.start = int((pos - recordBase) * 2)
 				block.firstIdx = idx
 				block.records = append(block.records, record)
 
@@ -216,7 +208,6 @@ func (hf *File) accessAt(pos uint32, size int) (*recordView, error) {
 
 				return block, nil
 			}
-			base += uint32(record.length)
 		}
 	}
 	return nil, AccessOutOfBounds
