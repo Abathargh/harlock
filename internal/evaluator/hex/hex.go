@@ -115,15 +115,18 @@ func (hf *File) WriteAt(pos uint32, data []byte) error {
 			}
 			copy(recData[block.start:], hexData[:len(recData)-block.start])
 			written += len(recData) - block.start
+			updateChecksum(record)
 			continue
 		}
 
 		if record.length > hexSize-written {
 			copy(recData, hexData[written:hexSize])
+			updateChecksum(record)
 			break
 		} else {
 			copy(recData, hexData[written:written+len(recData)])
 			written += record.length * 2
+			updateChecksum(record)
 		}
 	}
 
@@ -211,4 +214,13 @@ func (hf *File) accessAt(pos uint32, size int) (*recordView, error) {
 		}
 	}
 	return nil, AccessOutOfBounds
+}
+
+// updateChecksum is a helper function used to fix checksums
+// of modified records
+func updateChecksum(record *Record) {
+	recordChecksum, _ := checksum(record.data)
+	var hexChecksum [2]byte
+	hex.Encode(hexChecksum[:], []byte{recordChecksum})
+	copy(record.Checksum(), hexChecksum[:])
 }

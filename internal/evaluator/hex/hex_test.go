@@ -212,6 +212,12 @@ func TestFile_WriteAt(t *testing.T) {
 				t.Fatalf("unexpected error: %s", err)
 			}
 
+			for _, record := range file.records {
+				if isValid, _, _ := validateRecord(record); !isValid {
+					t.Fatalf("invalid record after write: %s", record.AsString())
+				}
+			}
+
 			if !reflect.DeepEqual(readData, testCase.input) {
 				t.Errorf("expected read data @%X to be %v, got %v", testCase.pos, testCase.input, readData)
 			}
