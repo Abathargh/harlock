@@ -283,8 +283,6 @@ func (hf *HexFile) Inspect() string {
 		records = append(records, hf.File.Record(idx).AsString())
 	}
 
-	buf.WriteString("HexFile{\n")
 	buf.WriteString(strings.Join(records, "\n"))
-	buf.WriteString("}")
 	return buf.String()
 }

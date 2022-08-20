@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"regexp/syntax"
+	"strings"
 	"unsafe"
 )
 
@@ -66,7 +67,7 @@ func (r *Record) AsString() string {
 	if r.data == nil {
 		return ""
 	}
-	return string(r.data)
+	return strings.ToUpper(string(r.data))
 }
 
 // ByteCount returned as an integer
