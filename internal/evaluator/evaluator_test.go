@@ -3,7 +3,6 @@ package evaluator
 import (
 	"bufio"
 	"bytes"
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -404,7 +403,7 @@ func TestHexFile(t *testing.T) {
 
 	input := `open("test.hex", "hex")`
 
-	err := ioutil.WriteFile("test.hex", []byte(hexFile), 0666)
+	err := os.WriteFile("test.hex", []byte(hexFile), 0666)
 	if err != nil {
 		t.Fatalf("cannot create the test.hex file")
 	}
@@ -561,7 +560,7 @@ h.read_at(0x2000*16, 4)`,
 		},
 	}
 
-	err := ioutil.WriteFile("test.hex", []byte(hexFile), 0666)
+	err := os.WriteFile("test.hex", []byte(hexFile), 0666)
 	if err != nil {
 		t.Fatalf("cannot create the test.hex file")
 	}

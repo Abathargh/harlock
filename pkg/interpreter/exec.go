@@ -6,6 +6,7 @@ package interpreter
 import (
 	"bufio"
 	"io"
+	"runtime/debug"
 
 	"github.com/Abathargh/harlock/internal/object"
 
@@ -16,6 +17,15 @@ import (
 
 // Version represents the current harlock version
 var Version = ""
+
+func init() {
+	if Version == "" {
+		info, ok := debug.ReadBuildInfo()
+		if ok {
+			Version = info.Main.Version
+		}
+	}
+}
 
 // Exec reads a script from the passed reader, executes it and
 // sends the generated output to the passed writer. If the parsing

@@ -7,27 +7,32 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/Abathargh/harlock/pkg/interpreter"
-
 	"github.com/Abathargh/harlock/internal/repl"
+	"github.com/Abathargh/harlock/pkg/interpreter"
 )
 
 const (
-	nameMessage = "usage: harlock [flags] [filename]"
+	nameMessage = "usage: harlock [flags] [filename] [args]"
 	helpMessage = `Execute an harlock script or start a REPL session. 
 If the optional filename argument is passed, it must be a valid 
 name for an existing file, the contents of which will be executed. 
+If a filename is passed, a number of additional args can be passed, 
+that will be available within the instance of the execution.
 If no file is passed, the interpreter starts in interactive-mode.
 
 Flags:`
+
+	helpUsage    = "show this help message"
+	versionUsage = "prints the version for this build"
+	embedUsage   = "embeds the input script into an executable " +
+		"containing the interpreter runtime"
 )
 
 func main() {
 	fs := flag.NewFlagSet("harlock", flag.ExitOnError)
-	help := fs.Bool("help", false, "show this help message")
-	version := fs.Bool("version", false, "prints the version for this build")
-	embed := fs.String("embed", "", "embeds the input script into an executable "+
-		"containing the interpreter runtime")
+	help := fs.Bool("help", false, helpUsage)
+	version := fs.Bool("version", false, versionUsage)
+	embed := fs.String("embed", "", embedUsage)
 
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		panic(err)
