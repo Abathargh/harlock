@@ -12,6 +12,7 @@ func TestReadAll(t *testing.T) {
 		input    string
 		expected any
 	}{
+		{"\x01\r\n", WrongRecordFormatErr},
 		{`:020000021000EC
 :10C20000E0A5E6F6FDFFE0AEE00FE6FCFDFFE6FD93
 :10C21000FFFFF6F50EFE4B66F2FA0CFEF2F40EFE90
@@ -61,7 +62,9 @@ func TestReadAll(t *testing.T) {
 }
 
 func TestFile_ReadAt(t *testing.T) {
-	hexFile := `:020000021000EC
+	hexFile := `:10000000FFAEAEFF00000000000000000000000096
+:04000000FA00000200
+:020000021000EC
 :10C20000E0A5E6F6FDFFE0AEE00FE6FCFDFFE6FD93
 :10C21000FFFFF6F50EFE4B66F2FA0CFEF2F40EFE90
 :10C22000F04EF05FF06CF07DCA0050C2F086F097DF
@@ -75,7 +78,10 @@ func TestFile_ReadAt(t *testing.T) {
 		size     int
 		expected any
 	}{
-		{0, 10, AccessOutOfBounds},
+		{0, 21, AccessOutOfBounds},
+		{1, 3, []byte{0xAE, 0xAE, 0xFF}},
+		{0, 4, []byte{0xFF, 0xAE, 0xAE, 0xFF}},
+		{0, 20, []byte{0xFF, 0xAE, 0xAE, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFA, 0x00, 0x00, 0x02}},
 		{
 			0x1000*16 + 0xC200,
 			16,
@@ -136,7 +142,9 @@ func TestFile_ReadAt(t *testing.T) {
 }
 
 func TestFile_WriteAt(t *testing.T) {
-	hexFile := `:020000021000EC
+
+	hexFile := `:04000000FA00000200
+:020000021000EC
 :10C20000E0A5E6F6FDFFE0AEE00FE6FCFDFFE6FD93
 :10C21000FFFFF6F50EFE4B66F2FA0CFEF2F40EFE90
 :10C22000F04EF05FF06CF07DCA0050C2F086F097DF
@@ -151,6 +159,8 @@ func TestFile_WriteAt(t *testing.T) {
 		expectedError error
 	}{
 		{0, []byte{}, nil},
+		{0, []byte{0x0C, 0xAF, 0xFE}, nil},
+		{1, []byte{0xAF, 0xFE}, nil},
 		{
 			0x1000*16 + 0xC200,
 			[]byte{0x00, 0xEE, 0xAE, 0xBC, 0x01, 0x02, 0x03, 0x04, 0xCC, 0x05, 0x60, 0x71, 0x44, 0x12, 0xF7, 0xA1},
