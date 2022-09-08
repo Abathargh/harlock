@@ -20,7 +20,7 @@ type recordView struct {
 
 // ReadAll initializes a hex file by reading every byte
 // from its source, parsing the records and validating them
-func ReadAll(in io.ByteReader) (*File, error) {
+func ReadAll(in io.ByteScanner) (*File, error) {
 	eof := false
 	var records []*Record
 	rec, err := ParseRecord(in)
@@ -34,10 +34,14 @@ func ReadAll(in io.ByteReader) (*File, error) {
 		}
 	}
 
-	if err == NoMoreRecordsErr && records != nil && records[len(records)-1].rType == EOFRecord {
-		return &File{records: records}, nil
+	if err == NoMoreRecordsErr {
+		if records != nil && records[len(records)-1].rType == EOFRecord {
+			return &File{records: records}, nil
+		}
+		return nil, NoEofRecordErr
 	}
-	return nil, NoEofRecordErr
+
+	return nil, err
 }
 
 // Size returns the number of records in the file
@@ -78,13 +82,13 @@ func (hf *File) ReadAt(pos uint32, size int) ([]byte, error) {
 			continue
 		}
 
-		if record.length > hexSize-written {
+		if record.length*2 >= hexSize-written {
 			copy(hexData[written:], recData[:hexSize-written])
 			break
-		} else {
-			copy(hexData[written:], recData)
-			written += record.length * 2
 		}
+
+		copy(hexData[written:], recData)
+		written += record.length * 2
 	}
 
 	byteData := make([]byte, len(hexData)/2)
@@ -110,7 +114,8 @@ func (hf *File) WriteAt(pos uint32, data []byte) error {
 		recData := record.ReadData()
 		if idx == 0 && block.start != 0 {
 			if block.start+hexSize < len(recData) {
-				copy(recData[block.start:], hexData[:block.start+hexSize])
+				copy(recData[block.start:], hexData[:])
+				updateChecksum(record)
 				break
 			}
 			copy(recData[block.start:], hexData[:len(recData)-block.start])
@@ -119,15 +124,23 @@ func (hf *File) WriteAt(pos uint32, data []byte) error {
 			continue
 		}
 
-		if record.length > hexSize-written {
-			copy(recData, hexData[written:hexSize])
+		// from here on, write always start from the
+		// first byte of the record, hence no block.start
+
+		// if the current record is bigger
+		// than what remains to be written,
+		// write the whole remaining buf
+		if record.length*2 > hexSize-written {
+			copy(recData, hexData[written:])
 			updateChecksum(record)
 			break
-		} else {
-			copy(recData, hexData[written:written+len(recData)])
-			written += record.length * 2
-			updateChecksum(record)
 		}
+
+		// there is a part of the buf that will be
+		// written on the next record(s)
+		copy(recData, hexData[written:written+(record.length*2)])
+		written += record.length * 2
+		updateChecksum(record)
 	}
 
 	return nil

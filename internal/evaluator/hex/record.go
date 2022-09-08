@@ -41,6 +41,33 @@ const (
 	minLength = startCodeLen + countLen + addrLen + typeLen + checksumLen
 )
 
+var digits = map[byte]struct{}{
+	'0':  {},
+	'1':  {},
+	'2':  {},
+	'3':  {},
+	'4':  {},
+	'5':  {},
+	'6':  {},
+	'7':  {},
+	'8':  {},
+	'9':  {},
+	'a':  {},
+	'b':  {},
+	'c':  {},
+	'd':  {},
+	'e':  {},
+	'f':  {},
+	'A':  {},
+	'B':  {},
+	'C':  {},
+	'D':  {},
+	'E':  {},
+	'F':  {},
+	'\n': {},
+	'\r': {},
+}
+
 // RecordType identifies the type of hex record (Data, EOF, etc.)
 type RecordType uint
 
@@ -151,7 +178,7 @@ func (r *Record) WriteData(start int, data []byte) error {
 // ParseRecord initializes a new Record reading from a ByteReader.
 // This function returns an error if the byte stream that is read
 // does not represent a valid Record.
-func ParseRecord(input io.ByteReader) (*Record, error) {
+func ParseRecord(input io.ByteScanner) (*Record, error) {
 	record := &Record{}
 	curr, err := input.ReadByte()
 	if err != nil {
@@ -165,15 +192,22 @@ func ParseRecord(input io.ByteReader) (*Record, error) {
 	for curr != '\r' && curr != '\n' {
 		record.data = append(record.data, curr)
 		curr, err = input.ReadByte()
-		if err != nil {
+		_, ok := digits[curr]
+		if !ok || err != nil {
 			return nil, WrongRecordFormatErr
 		}
 	}
 
+	// support \r, \n and \r\n as line terminators
+	// wikipedia indicates that any of these are ok
+	// microchip does too
 	if curr == '\r' {
 		curr, err = input.ReadByte()
-		if err != nil || curr != '\n' {
+		if err != nil || (curr != ':' && curr != '\n') {
 			return nil, WrongRecordFormatErr
+		}
+		if curr == ':' {
+			_ = input.UnreadByte()
 		}
 	}
 
