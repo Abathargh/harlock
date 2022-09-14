@@ -22,6 +22,7 @@ var (
 		"set":      {Function: builtinSet},
 		"type":     {Function: builtinType},
 		"open":     {Function: builtinOpen},
+		"save":     {Function: builtinSave},
 		"print":    {Function: builtinPrint},
 		"contains": {Function: builtinContains},
 	}

@@ -208,11 +208,28 @@ func builtinOpen(args ...object.Object) object.Object {
 		if err != nil {
 			return newError("file error: %s", err)
 		}
-		return &object.HexFile{
-			Name: file.Name(),
-			File: hexFile,
-		}
+
+		info, _ := file.Stat()
+		return object.NewHexFile(file.Name(), uint32(info.Mode().Perm()), hexFile)
 	default:
 		return newError("type error: not implemented")
+	}
+}
+
+func builtinSave(args ...object.Object) object.Object {
+	if len(args) != 2 {
+		return newError("type error: save requires only one argument " +
+			"(a file object)")
+	}
+
+	switch file := args[0].(type) {
+	case object.File:
+		err := os.WriteFile(file.Name(), file.AsBytes(), os.FileMode(file.Perms()))
+		if err != nil {
+			return newError("file error: could not save file")
+		}
+		return nil
+	default:
+		return newError("type error: must pass a file (hex, elf, bytes)")
 	}
 }

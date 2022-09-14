@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/Abathargh/harlock/internal/evaluator/hex"
 	"hash/fnv"
+	"strconv"
 	"strings"
 
 	"github.com/Abathargh/harlock/internal/ast"
@@ -17,7 +18,8 @@ const (
 	SetObj         = "Set"
 	MapObj         = "Map"
 	HexObj         = "Hex File"
-	FileObj        = "File"
+	ElfObj         = "Elf file"
+	BytesObj       = "Bytes file"
 	ErrorObj       = "Error"
 	ArrayObj       = "Array"
 	StringObj      = "String"
@@ -266,9 +268,36 @@ func (s *Set) Inspect() string {
 	return buf.String()
 }
 
+type File interface {
+	Name() string
+	Perms() uint32
+	AsBytes() []byte
+}
+
 type HexFile struct {
-	Name string
-	File *hex.File
+	name  string
+	perms uint32
+	file  *hex.File
+}
+
+func NewHexFile(name string, perms uint32, hexfile *hex.File) *HexFile {
+	return &HexFile{
+		name:  name,
+		perms: perms,
+		file:  hexfile,
+	}
+}
+
+func (hf *HexFile) Name() string {
+	return hf.name
+}
+
+func (hf *HexFile) Perms() uint32 {
+	return hf.perms
+}
+
+func (hf *HexFile) AsBytes() []byte {
+	return []byte(hf.Inspect())
 }
 
 func (hf *HexFile) Type() ObjectType {
@@ -279,10 +308,71 @@ func (hf *HexFile) Inspect() string {
 	var buf strings.Builder
 	var records []string
 
-	for idx := 0; idx < hf.File.Size(); idx++ {
-		records = append(records, hf.File.Record(idx).AsString())
+	for idx := 0; idx < hf.file.Size(); idx++ {
+		records = append(records, hf.file.Record(idx).AsString())
 	}
 
 	buf.WriteString(strings.Join(records, "\n"))
+	return buf.String()
+}
+
+type ElfFile struct {
+	name     string
+	perms    uint32
+	contents []byte
+}
+
+func (ef *ElfFile) Name() string {
+	return ef.name
+}
+
+func (ef *ElfFile) Perms() uint32 {
+	return ef.perms
+}
+
+func (ef *ElfFile) AsBytes() []byte {
+	return ef.contents
+}
+
+func (ef *ElfFile) ElfFile() ObjectType {
+	return ElfObj
+}
+
+func (ef *ElfFile) Inspect() string {
+	var buf strings.Builder
+	// TODO
+	return buf.String()
+}
+
+type BytesFile struct {
+	name  string
+	perms uint32
+	bytes []byte
+}
+
+func (bf *BytesFile) Name() string {
+	return bf.name
+}
+
+func (bf *BytesFile) Perms() uint32 {
+	return bf.perms
+}
+
+func (bf *BytesFile) AsBytes() []byte {
+	return bf.bytes
+}
+
+func (bf *BytesFile) Type() ObjectType {
+	return BytesObj
+}
+
+func (bf *BytesFile) Inspect() string {
+	var buf strings.Builder
+	for idx, b := range bf.bytes {
+		buf.WriteString(strconv.Itoa(int(b)))
+		if idx != len(bf.bytes)-1 {
+			buf.WriteString(", ")
+		}
+	}
 	return buf.String()
 }
