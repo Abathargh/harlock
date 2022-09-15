@@ -18,8 +18,8 @@ const (
 	SetObj         = "Set"
 	MapObj         = "Map"
 	HexObj         = "Hex File"
-	ElfObj         = "Elf file"
-	BytesObj       = "Bytes file"
+	ElfObj         = "Elf File"
+	BytesObj       = "Bytes File"
 	ErrorObj       = "Error"
 	ArrayObj       = "Array"
 	StringObj      = "String"
@@ -277,14 +277,14 @@ type File interface {
 type HexFile struct {
 	name  string
 	perms uint32
-	file  *hex.File
+	File  *hex.File
 }
 
 func NewHexFile(name string, perms uint32, hexfile *hex.File) *HexFile {
 	return &HexFile{
 		name:  name,
 		perms: perms,
-		file:  hexfile,
+		File:  hexfile,
 	}
 }
 
@@ -308,8 +308,9 @@ func (hf *HexFile) Inspect() string {
 	var buf strings.Builder
 	var records []string
 
-	for idx := 0; idx < hf.file.Size(); idx++ {
-		records = append(records, hf.file.Record(idx).AsString())
+	ch := hf.File.Iterator()
+	for rec := range ch {
+		records = append(records, rec.AsString())
 	}
 
 	buf.WriteString(strings.Join(records, "\n"))
@@ -348,6 +349,14 @@ type BytesFile struct {
 	name  string
 	perms uint32
 	bytes []byte
+}
+
+func NewBytesFile(name string, perms uint32, contents []byte) *BytesFile {
+	return &BytesFile{
+		name:  name,
+		perms: perms,
+		bytes: contents,
+	}
 }
 
 func (bf *BytesFile) Name() string {

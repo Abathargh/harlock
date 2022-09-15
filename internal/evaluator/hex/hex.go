@@ -44,6 +44,17 @@ func ReadAll(in io.ByteScanner) (*File, error) {
 	return nil, err
 }
 
+func (hf *File) Iterator() <-chan *Record {
+	ch := make(chan *Record)
+	go func(recs []*Record, channel chan *Record) {
+		for _, rec := range recs {
+			ch <- rec
+		}
+		close(ch)
+	}(hf.records, ch)
+	return ch
+}
+
 // Size returns the number of records in the file
 func (hf *File) Size() int {
 	return len(hf.records)

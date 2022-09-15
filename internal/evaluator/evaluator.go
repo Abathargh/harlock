@@ -24,6 +24,7 @@ var (
 		"open":     {Function: builtinOpen},
 		"save":     {Function: builtinSave},
 		"print":    {Function: builtinPrint},
+		"as_bytes": {Function: builtinAsBytes},
 		"contains": {Function: builtinContains},
 	}
 
@@ -585,6 +586,8 @@ func getBoolReference(input bool) *object.Boolean {
 }
 
 func isTruthy(obj object.Object) bool {
+	// TODO add support for collections
+	// TODO empty => false, non-empty => true
 	switch obj {
 	case NULL:
 		return false

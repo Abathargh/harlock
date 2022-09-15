@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/Abathargh/harlock/internal/evaluator/hex"
+	"io"
 	"os"
 	"strconv"
 
@@ -196,23 +197,34 @@ func builtinOpen(args ...object.Object) object.Object {
 			"got %T", args[0])
 	}
 
-	switch fileType.Value {
-	case "hex":
-		file, err := os.Open(filename.Value)
-		if err != nil {
-			return newError("file error: could not open file %q", filename.Value)
-		}
-		defer file.Close()
+	file, err := os.Open(filename.Value)
+	if err != nil {
+		return newError("file error: could not open file %q", filename.Value)
+	}
+	defer func() { _ = file.Close() }()
 
+	switch fileType.Value {
+	case "bytes":
+		bytes, err := io.ReadAll(file)
+		if err != nil {
+			return newError("file error: cannot read the contents of the passed file")
+		}
+		info, _ := file.Stat()
+		return object.NewBytesFile(file.Name(), uint32(info.Mode().Perm()), bytes)
+
+	case "hex":
 		hexFile, err := hex.ReadAll(bufio.NewReader(file))
 		if err != nil {
 			return newError("file error: %s", err)
 		}
-
 		info, _ := file.Stat()
 		return object.NewHexFile(file.Name(), uint32(info.Mode().Perm()), hexFile)
+
+	case "elf":
+		// TODO
+		fallthrough
 	default:
-		return newError("type error: not implemented")
+		return newError("type error: unsupported file type")
 	}
 }
 
@@ -221,7 +233,6 @@ func builtinSave(args ...object.Object) object.Object {
 		return newError("type error: save requires only one argument " +
 			"(a file object)")
 	}
-
 	switch file := args[0].(type) {
 	case object.File:
 		err := os.WriteFile(file.Name(), file.AsBytes(), os.FileMode(file.Perms()))
@@ -229,6 +240,23 @@ func builtinSave(args ...object.Object) object.Object {
 			return newError("file error: could not save file")
 		}
 		return nil
+	default:
+		return newError("type error: must pass a file (hex, elf, bytes)")
+	}
+}
+
+func builtinAsBytes(args ...object.Object) object.Object {
+	if len(args) != 1 {
+		return newError("type error: as_bytes requires only one argument (a file object)")
+	}
+	switch file := args[0].(type) {
+	case object.File:
+		bytes := file.AsBytes()
+		buf := make([]object.Object, len(bytes))
+		for idx, b := range bytes {
+			buf[idx] = &object.Integer{Value: int64(b)}
+		}
+		return &object.Array{Elements: buf}
 	default:
 		return newError("type error: must pass a file (hex, elf, bytes)")
 	}

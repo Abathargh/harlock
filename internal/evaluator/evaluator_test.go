@@ -415,7 +415,7 @@ func TestHexFile(t *testing.T) {
 		t.Fatalf("expected object of HexFile type, got %T: %v", evaluated, evaluated)
 	}
 
-	if hex.Name != "test.hex" {
+	if hex.Name() != "test.hex" {
 		t.Fatalf("expected file to have \"test.hex\" as its name, got %q", hex.Name)
 	}
 
