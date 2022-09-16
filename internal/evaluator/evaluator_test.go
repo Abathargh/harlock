@@ -416,7 +416,7 @@ func TestHexFile(t *testing.T) {
 	}
 
 	if hex.Name() != "test.hex" {
-		t.Fatalf("expected file to have \"test.hex\" as its name, got %q", hex.Name)
+		t.Fatalf("expected file to have \"test.hex\" as its name, got %q", hex.Name())
 	}
 
 	if hex.File.Size() != 8 {

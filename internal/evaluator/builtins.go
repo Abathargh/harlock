@@ -229,7 +229,7 @@ func builtinOpen(args ...object.Object) object.Object {
 }
 
 func builtinSave(args ...object.Object) object.Object {
-	if len(args) != 2 {
+	if len(args) != 1 {
 		return newError("type error: save requires only one argument " +
 			"(a file object)")
 	}

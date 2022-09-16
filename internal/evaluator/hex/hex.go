@@ -153,7 +153,6 @@ func (hf *File) WriteAt(pos uint32, data []byte) error {
 		written += record.length * 2
 		updateChecksum(record)
 	}
-
 	return nil
 }
 
@@ -167,7 +166,7 @@ func (hf *File) accessAt(pos uint32, size int) (*recordView, error) {
 	}
 
 	// we are reading hex digits, 2 hex digits = 1 byte
-	size *= 2
+	hexSize := size * 2
 	base := uint32(0)
 	block := &recordView{}
 
@@ -201,7 +200,7 @@ func (hf *File) accessAt(pos uint32, size int) (*recordView, error) {
 				// these checks are needed to know if the access
 				// should stop at the first record
 				start := (pos - recordBase) * 2
-				end := start + uint32(size)
+				end := start + uint32(hexSize)
 				if end > uLen {
 					end = uLen
 				}
@@ -214,7 +213,7 @@ func (hf *File) accessAt(pos uint32, size int) (*recordView, error) {
 				alreadyAccessedLen := int(end - start)
 
 				// the access operation is not finished with the current record
-				for alreadyAccessedLen < size && idx != len(hf.records)-1 {
+				for alreadyAccessedLen < hexSize && idx != len(hf.records)-1 {
 					idx++
 					current := hf.records[idx]
 					// bad access: trying to access data with holes in it
@@ -227,7 +226,7 @@ func (hf *File) accessAt(pos uint32, size int) (*recordView, error) {
 				}
 
 				// bad access: trying to access more than what is there on the hex hf.
-				if alreadyAccessedLen < size {
+				if alreadyAccessedLen < hexSize {
 					return nil, AccessOutOfBounds
 				}
 
