@@ -297,7 +297,12 @@ func (hf *HexFile) Perms() uint32 {
 }
 
 func (hf *HexFile) AsBytes() []byte {
-	return []byte(hf.Inspect())
+	var buf []byte
+	ch := hf.File.Iterator()
+	for rec := range ch {
+		buf = append(buf, rec.AsBytes()...)
+	}
+	return buf
 }
 
 func (hf *HexFile) Type() ObjectType {

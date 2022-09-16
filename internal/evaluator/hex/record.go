@@ -97,6 +97,16 @@ func (r *Record) AsString() string {
 	return strings.ToUpper(string(r.data))
 }
 
+// AsBytes returns a bytes representation of the record
+func (r *Record) AsBytes() []byte {
+	bufLen := len(r.data) + 2
+	buf := make([]byte, bufLen)
+	copy(buf, r.data)
+	buf[bufLen-2] = '\r'
+	buf[bufLen-1] = '\n'
+	return buf
+}
+
 // ByteCount returned as an integer
 func (r *Record) ByteCount() int {
 	if r.data == nil {
