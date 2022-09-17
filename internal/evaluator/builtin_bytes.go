@@ -9,14 +9,14 @@ func bytesBuiltinWriteAt(this object.Object, args ...object.Object) object.Objec
 			"(the data array and the position)")
 	}
 
-	data, isArray := args[0].(*object.Array)
-	if !isArray {
-		return newError("type error: data must be an array")
-	}
-
-	position, isInt := args[1].(*object.Integer)
+	position, isInt := args[0].(*object.Integer)
 	if !isInt || position.Value < 0 {
 		return newError("type error: position must be a positive integer")
+	}
+
+	data, isArray := args[1].(*object.Array)
+	if !isArray {
+		return newError("type error: data must be an array")
 	}
 
 	byteArr := make([]byte, len(data.Elements))
