@@ -192,7 +192,8 @@ func (hf *File) accessAt(pos uint32, size int) (*recordView, error) {
 		case EOFRecord:
 			// Do nothing
 		case DataRecord:
-			uLen := uint32(record.length) * 2
+			uLen := uint32(record.length)
+			hLen := uLen * 2
 			recordBase := uint32(record.Address()) + base
 
 			// Found the record where the access should begin
@@ -201,8 +202,8 @@ func (hf *File) accessAt(pos uint32, size int) (*recordView, error) {
 				// should stop at the first record
 				start := (pos - recordBase) * 2
 				end := start + uint32(hexSize)
-				if end > uLen {
-					end = uLen
+				if end > hLen {
+					end = hLen
 				}
 
 				// put the first record in the view
@@ -213,16 +214,16 @@ func (hf *File) accessAt(pos uint32, size int) (*recordView, error) {
 				alreadyAccessedLen := int(end - start)
 
 				// the access operation is not finished with the current record
-				for alreadyAccessedLen < hexSize && idx != len(hf.records)-1 {
-					idx++
+				idx++
+				for ; alreadyAccessedLen < hexSize && idx != len(hf.records)-1; idx++ {
 					current := hf.records[idx]
 					// bad access: trying to access data with holes in it
 					if current.rType != DataRecord {
 						return nil, CustomError(AccessOutOfBounds,
-							"no data with %d size found at @%d", size, pos)
+							"no data with %d size found at @%d, base %d", size, pos, recordBase)
 					}
 					block.records = append(block.records, current)
-					alreadyAccessedLen += current.length
+					alreadyAccessedLen += current.length * 2
 				}
 
 				// bad access: trying to access more than what is there on the hex hf.

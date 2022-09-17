@@ -53,7 +53,8 @@ func hexBuiltinReadAt(this object.Object, args ...object.Object) object.Object {
 
 	readData, err := hexThis.File.ReadAt(uint32(pos.Value), int(size.Value))
 	if err != nil {
-		return newError("hex error: %s", err)
+		return newError("hex error: hex.ReadAt(%d, %d): %s",
+			uint32(pos.Value), int(size.Value), err)
 	}
 
 	retVal := &object.Array{Elements: make([]object.Object, len(readData))}
