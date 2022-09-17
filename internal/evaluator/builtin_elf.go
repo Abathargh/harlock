@@ -45,12 +45,12 @@ func elfBuiltinWriteSection(this object.Object, args ...object.Object) object.Ob
 		return newError("type error: the section name must be a string")
 	}
 
-	data, isArray := args[0].(*object.Array)
+	data, isArray := args[1].(*object.Array)
 	if !isArray {
 		return newError("type error: data must be an array")
 	}
 
-	offset, isInt := args[0].(*object.Integer)
+	offset, isInt := args[2].(*object.Integer)
 	if !isInt || offset.Value < 0 {
 		return newError("type error: the offset must be a positive integer")
 	}
@@ -67,7 +67,7 @@ func elfBuiltinWriteSection(this object.Object, args ...object.Object) object.Ob
 
 	err := elfThis.File.WriteSection(section.Value, byteArr, uint64(offset.Value))
 	if err != nil {
-		return newError("elf error: elf.WriteSection(%q, [%d]], %d): %s",
+		return newError("elf error: elf.write_section(%q, [%d]], %d): %s",
 			section.Value, len(byteArr), uint64(offset.Value), err)
 	}
 	return nil
@@ -87,7 +87,7 @@ func elfBuiltinReadSection(this object.Object, args ...object.Object) object.Obj
 
 	readData, err := elfThis.File.ReadSection(section.Value)
 	if err != nil {
-		return newError("elf error: elf.ReadSection(%q): %s",
+		return newError("elf error: elf.read_section(%q): %s",
 			section.Value, err)
 	}
 

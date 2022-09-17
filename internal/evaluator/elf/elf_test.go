@@ -200,12 +200,12 @@ var elfFile = []byte{
 func TestReadall(t *testing.T) {
 	var elfNull []byte
 
-	_, err := Readall(bytes.NewReader(elfFile))
+	_, err := ReadAll(bytes.NewReader(elfFile))
 	if err != nil {
 		t.Errorf("Unexpected error reading valid elf file")
 	}
 
-	_, err = Readall(bytes.NewReader(elfNull))
+	_, err = ReadAll(bytes.NewReader(elfNull))
 	if err == nil {
 		t.Errorf("Expected error reading invalid elf file, got nil")
 	}
@@ -220,7 +220,7 @@ func TestFile_HasSection(t *testing.T) {
 		{".other", false},
 		{".other2", false},
 	}
-	file, err := Readall(bytes.NewReader(elfFile))
+	file, err := ReadAll(bytes.NewReader(elfFile))
 	if err != nil {
 		t.Errorf("Unexpected error reading valid elf file")
 	}
@@ -249,7 +249,7 @@ func TestFile_ReadSection(t *testing.T) {
 		{".testtest", array256[:], nil},
 		{".testtest2", test2Conts[:], nil},
 	}
-	file, ferr := Readall(bytes.NewReader(elfFile))
+	file, ferr := ReadAll(bytes.NewReader(elfFile))
 	if ferr != nil {
 		t.Errorf("Unexpected error reading valid elf file")
 	}
@@ -298,7 +298,7 @@ func TestFile_WriteSection(t *testing.T) {
 		{".testtest2", test2Conts[:], 10, OutOfBoundsErr},
 		{".testtest2", array300[:], 0, OutOfBoundsErr},
 	}
-	file, ferr := Readall(bytes.NewReader(elfFile))
+	file, ferr := ReadAll(bytes.NewReader(elfFile))
 	if ferr != nil {
 		t.Errorf("Unexpected error reading valid elf file")
 	}

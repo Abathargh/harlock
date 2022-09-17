@@ -12,8 +12,8 @@ type File struct {
 	bytes []byte
 }
 
-// Readall initializes an elf file object from a file stream
-func Readall(file io.Reader) (*File, error) {
+// ReadAll initializes an elf file object from a file stream
+func ReadAll(file io.Reader) (*File, error) {
 	byteData, err := io.ReadAll(file)
 	if err != nil {
 		return nil, FileOpenErr
