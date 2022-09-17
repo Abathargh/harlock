@@ -2,6 +2,7 @@ package object
 
 import (
 	"fmt"
+	"github.com/Abathargh/harlock/internal/evaluator/bytes"
 	"github.com/Abathargh/harlock/internal/evaluator/elf"
 	"github.com/Abathargh/harlock/internal/evaluator/hex"
 	"hash/fnv"
@@ -369,14 +370,16 @@ func (ef *ElfFile) Inspect() string {
 type BytesFile struct {
 	name  string
 	perms uint32
-	bytes []byte
+	size  int64
+	Bytes *bytes.File
 }
 
-func NewBytesFile(name string, perms uint32, contents []byte) *BytesFile {
+func NewBytesFile(name string, perms uint32, size int64, bytesFile *bytes.File) *BytesFile {
 	return &BytesFile{
 		name:  name,
 		perms: perms,
-		bytes: contents,
+		size:  size,
+		Bytes: bytesFile,
 	}
 }
 
@@ -389,7 +392,8 @@ func (bf *BytesFile) Perms() uint32 {
 }
 
 func (bf *BytesFile) AsBytes() []byte {
-	return bf.bytes
+	data, _ := bf.Bytes.ReadAt(0, int(bf.size))
+	return data
 }
 
 func (bf *BytesFile) Type() ObjectType {
@@ -398,9 +402,10 @@ func (bf *BytesFile) Type() ObjectType {
 
 func (bf *BytesFile) Inspect() string {
 	var buf strings.Builder
-	for idx, b := range bf.bytes {
+	bs := bf.AsBytes()
+	for idx, b := range bs {
 		buf.WriteString(strconv.Itoa(int(b)))
-		if idx != len(bf.bytes)-1 {
+		if idx != len(bs)-1 {
 			buf.WriteString(", ")
 		}
 	}

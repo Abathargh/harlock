@@ -54,6 +54,11 @@ var (
 			"write_section": elfBuiltinWriteSection,
 			"read_section":  elfBuiltinReadSection,
 		},
+
+		object.BytesObj: {
+			"read_at":  bytesBuiltinReadAt,
+			"write_at": bytesBuiltinWriteAt,
+		},
 	}
 )
 

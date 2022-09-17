@@ -3,9 +3,9 @@ package evaluator
 import (
 	"bufio"
 	"fmt"
+	"github.com/Abathargh/harlock/internal/evaluator/bytes"
 	harlockElf "github.com/Abathargh/harlock/internal/evaluator/elf"
 	"github.com/Abathargh/harlock/internal/evaluator/hex"
-	"io"
 	"os"
 	"strconv"
 
@@ -206,12 +206,12 @@ func builtinOpen(args ...object.Object) object.Object {
 
 	switch fileType.Value {
 	case "bytes":
-		bytes, err := io.ReadAll(file)
+		bytesFile, err := bytes.ReadAll(file)
 		if err != nil {
 			return newError("file error: cannot read the contents of the passed file")
 		}
 		info, _ := file.Stat()
-		return object.NewBytesFile(file.Name(), uint32(info.Mode().Perm()), bytes)
+		return object.NewBytesFile(file.Name(), uint32(info.Mode().Perm()), info.Size(), bytesFile)
 
 	case "hex":
 		hexFile, err := hex.ReadAll(bufio.NewReader(file))
@@ -222,7 +222,7 @@ func builtinOpen(args ...object.Object) object.Object {
 		return object.NewHexFile(file.Name(), uint32(info.Mode().Perm()), hexFile)
 
 	case "elf":
-		elfFile, err := harlockElf.Readall(file)
+		elfFile, err := harlockElf.ReadAll(file)
 		if err != nil {
 			return newError("file error: %s", err)
 		}
@@ -257,9 +257,9 @@ func builtinAsBytes(args ...object.Object) object.Object {
 	}
 	switch file := args[0].(type) {
 	case object.File:
-		bytes := file.AsBytes()
-		buf := make([]object.Object, len(bytes))
-		for idx, b := range bytes {
+		bs := file.AsBytes()
+		buf := make([]object.Object, len(bs))
+		for idx, b := range bs {
 			buf[idx] = &object.Integer{Value: int64(b)}
 		}
 		return &object.Array{Elements: buf}
