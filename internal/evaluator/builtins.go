@@ -84,7 +84,9 @@ func builtinPrint(args ...object.Object) object.Object {
 
 	var ifcArgs []interface{}
 	for _, arg := range args {
-		ifcArgs = append(ifcArgs, arg.Inspect())
+		if arg != nil {
+			ifcArgs = append(ifcArgs, arg.Inspect())
+		}
 	}
 
 	fmt.Println(ifcArgs...)
