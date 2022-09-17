@@ -18,7 +18,7 @@ func ReadAll(reader io.Reader) (*File, error) {
 }
 
 // WriteAt implements random access in write mode for a bytes file
-func (bf *File) WriteAt(data []byte, position int) error {
+func (bf *File) WriteAt(position int, data []byte) error {
 	if position+len(data) > len(bf.bytes) {
 		return AccessOutOfBounds
 	}

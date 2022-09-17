@@ -29,7 +29,7 @@ func bytesBuiltinWriteAt(this object.Object, args ...object.Object) object.Objec
 		byteArr[idx] = byte(intElem.Value)
 	}
 
-	err := bytesThis.Bytes.WriteAt(byteArr, int(position.Value))
+	err := bytesThis.Bytes.WriteAt(int(position.Value), byteArr)
 	if err != nil {
 		return newError("bytes error: bytes.write_at([%d], %d): %s",
 			len(byteArr), uint64(position.Value), err)

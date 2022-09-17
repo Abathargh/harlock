@@ -30,7 +30,7 @@ func TestFile_WriteAt(t *testing.T) {
 			continue
 		}
 
-		werr := bytesFile.WriteAt(testCase.data, testCase.position)
+		werr := bytesFile.WriteAt(testCase.position, testCase.data)
 		switch testCase.expectedErr {
 		case AccessOutOfBounds:
 			if !errors.Is(werr, testCase.expectedErr) {
