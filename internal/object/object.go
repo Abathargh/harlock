@@ -2,6 +2,7 @@ package object
 
 import (
 	"fmt"
+	"github.com/Abathargh/harlock/internal/evaluator/elf"
 	"github.com/Abathargh/harlock/internal/evaluator/hex"
 	"hash/fnv"
 	"strconv"
@@ -323,9 +324,17 @@ func (hf *HexFile) Inspect() string {
 }
 
 type ElfFile struct {
-	name     string
-	perms    uint32
-	contents []byte
+	name  string
+	perms uint32
+	File  *elf.File
+}
+
+func NewElfFile(name string, perms uint32, elffile *elf.File) *ElfFile {
+	return &ElfFile{
+		name:  name,
+		perms: perms,
+		File:  elffile,
+	}
 }
 
 func (ef *ElfFile) Name() string {
@@ -337,16 +346,23 @@ func (ef *ElfFile) Perms() uint32 {
 }
 
 func (ef *ElfFile) AsBytes() []byte {
-	return ef.contents
+	return ef.File.AsBytes()
 }
 
-func (ef *ElfFile) ElfFile() ObjectType {
+func (ef *ElfFile) Type() ObjectType {
 	return ElfObj
 }
 
 func (ef *ElfFile) Inspect() string {
 	var buf strings.Builder
-	// TODO
+	buf.WriteString(fmt.Sprintf("ElfFile(@%s) {\n", ef.name))
+	buf.WriteString("  Sections: [")
+	for _, section := range ef.File.Sections() {
+		buf.WriteString(fmt.Sprintf("%s ", section))
+	}
+	buf.WriteString("]\n")
+	buf.WriteString("}")
+
 	return buf.String()
 }
 

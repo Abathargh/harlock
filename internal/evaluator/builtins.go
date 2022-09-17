@@ -3,6 +3,7 @@ package evaluator
 import (
 	"bufio"
 	"fmt"
+	harlockElf "github.com/Abathargh/harlock/internal/evaluator/elf"
 	"github.com/Abathargh/harlock/internal/evaluator/hex"
 	"io"
 	"os"
@@ -221,8 +222,13 @@ func builtinOpen(args ...object.Object) object.Object {
 		return object.NewHexFile(file.Name(), uint32(info.Mode().Perm()), hexFile)
 
 	case "elf":
-		// TODO
-		fallthrough
+		elfFile, err := harlockElf.Readall(file)
+		if err != nil {
+			return newError("file error: %s", err)
+		}
+		info, _ := file.Stat()
+		return object.NewElfFile(file.Name(), uint32(info.Mode().Perm()), elfFile)
+
 	default:
 		return newError("type error: unsupported file type")
 	}

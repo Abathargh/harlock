@@ -48,6 +48,12 @@ var (
 			"read_at":  hexBuiltinReadAt,
 			"write_at": hexBuiltinWriteAt,
 		},
+		object.ElfObj: {
+			"has_section":   elfBuiltinHasSection,
+			"sections":      elfBuiltinSections,
+			"write_section": elfBuiltinWriteSection,
+			"read_section":  elfBuiltinReadSection,
+		},
 	}
 )
 
