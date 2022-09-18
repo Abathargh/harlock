@@ -1,3 +1,5 @@
+//go:build !interrepl || (interrepl && !linux)
+
 package repl
 
 import (
