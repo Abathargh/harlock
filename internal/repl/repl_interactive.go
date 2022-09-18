@@ -120,7 +120,7 @@ func (l *Line) Backspace() {
 	}
 }
 
-func (l *Line) Canc() {
+func (l *Line) Delete() {
 	if l.pos != l.end {
 		l.buffer = append(l.buffer[:l.pos], l.buffer[l.pos+1:]...)
 		l.end--
@@ -208,7 +208,7 @@ func Setup(command chan string) {
 				}
 				PrintLine(&line)
 			case keyboard.KeyDelete:
-				line.Canc()
+				line.Delete()
 				PrintLine(&line)
 			case keyboard.KeyBackspace:
 				fallthrough
