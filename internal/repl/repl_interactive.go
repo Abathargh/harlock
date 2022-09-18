@@ -17,6 +17,23 @@ import (
 	"strings"
 )
 
+// This version of the repl includes a "more interactive"
+// approach that allows for the usual normal stuff related
+// to navigation within a repl, like moving within a line
+// that is being written, deleting characters, using the
+// up/down keys to navigate the history.
+//
+// Known problems:
+// - The buffer used to manipulate the current line is
+//   inefficient and is a best-effort kind of implementation;
+// - Line-wrapping is broken, this is mainly tied to the usage
+//   of the ANSI escape characters and the current line management.
+//
+// A nicer approach may consist in getting the width of the terminal
+// and managing the buffer with reference to that, but for now I am
+// keeping it simple and with fewer dependencies.
+//
+
 const OFFSET = 5
 const PROMPT = ">>> "
 const FOLLOWING = "... "
@@ -24,12 +41,33 @@ const FOLLOWING = "... "
 type HistoryMgr struct {
 	list []string
 	pos  int
-	end  int
 }
 
 func (mgr *HistoryMgr) Push(cmd string) {
+	if len(strings.TrimSpace(cmd)) == 0 {
+		return
+	}
 	mgr.list = append(mgr.list, cmd)
+	mgr.pos = 0
+}
 
+func (mgr *HistoryMgr) GetPrevious() string {
+	if len(mgr.list) == 0 {
+		return ""
+	}
+	cmd := mgr.list[len(mgr.list)-mgr.pos-1]
+	if mgr.pos != len(mgr.list)-1 {
+		mgr.pos++
+	}
+	return cmd
+}
+
+func (mgr *HistoryMgr) GetNext() string {
+	if len(mgr.list) == 0 || mgr.pos == 0 {
+		return ""
+	}
+	mgr.pos--
+	return mgr.list[len(mgr.list)-mgr.pos-1]
 }
 
 type Direction uint8
@@ -60,6 +98,12 @@ func (l *Line) Move(direction Direction) bool {
 		return true
 	}
 	return false
+}
+
+func (l *Line) SetBuffer(str string) {
+	l.buffer = []rune(str)
+	l.pos = len(l.buffer)
+	l.end = len(l.buffer)
 }
 
 func (l *Line) Reset() {
@@ -115,7 +159,7 @@ func PrintLine(line *Line) {
 
 func Setup(command chan string) {
 	line := Line{}
-	//historyMgr := HistoryMgr{}
+	historyMgr := HistoryMgr{}
 	keysEvents, err := keyboard.GetKeys(10)
 	if err != nil {
 		panic(err)
@@ -135,11 +179,13 @@ func Setup(command chan string) {
 			switch event.Key {
 			case keyboard.KeyCtrlC:
 				line.Reset()
-				fmt.Print("\033[5G\033[0K")
+				fmt.Print("\033[5G\033[0K\n")
 				command <- "\n"
 			case keyboard.KeyCtrlD:
 				fmt.Printf("\nbye\n")
-				_ = exec.Command("reset").Run()
+				cmd := exec.Command("stty", "sane")
+				cmd.Stdin = os.Stdin
+				_ = cmd.Run()
 				os.Exit(1)
 			case keyboard.KeyArrowRight:
 				if line.Move(DirRight) {
@@ -150,9 +196,17 @@ func Setup(command chan string) {
 					fmt.Print("\033[1D")
 				}
 			case keyboard.KeyArrowUp:
-				fallthrough
+				cmd := historyMgr.GetPrevious()
+				if len(cmd) != 0 {
+					line.SetBuffer(cmd)
+					PrintLine(&line)
+				}
 			case keyboard.KeyArrowDown:
-				// TODO
+				cmd := historyMgr.GetNext()
+				if len(cmd) != 0 {
+					line.SetBuffer(cmd)
+				}
+				PrintLine(&line)
 			case keyboard.KeyDelete:
 				line.Canc()
 				PrintLine(&line)
@@ -166,8 +220,10 @@ func Setup(command chan string) {
 				PrintLine(&line)
 			case keyboard.KeyEnter:
 				fmt.Println()
-				command <- line.AsString() + "\n"
+				l := line.AsString()
+				command <- l + "\n"
 				line.Reset()
+				historyMgr.Push(l)
 			default:
 				fmt.Printf("\033[0K\rYou pressed: rune %q, key %X", event.Rune, event.Key)
 			}
