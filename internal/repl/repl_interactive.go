@@ -10,6 +10,7 @@ import (
 	"github.com/Abathargh/harlock/internal/lexer"
 	"github.com/Abathargh/harlock/internal/object"
 	"github.com/Abathargh/harlock/internal/parser"
+	"github.com/Abathargh/harlock/internal/repl/interactive"
 	"github.com/eiannone/keyboard"
 	"io"
 	"os"
@@ -34,132 +35,12 @@ import (
 // keeping it simple and with fewer dependencies.
 //
 
-const OFFSET = 5
 const PROMPT = ">>> "
 const FOLLOWING = "... "
 
-type HistoryMgr struct {
-	list []string
-	pos  int
-}
-
-func (mgr *HistoryMgr) Push(cmd string) {
-	if len(strings.TrimSpace(cmd)) == 0 {
-		return
-	}
-	mgr.list = append(mgr.list, cmd)
-	mgr.pos = 0
-}
-
-func (mgr *HistoryMgr) GetPrevious() string {
-	if len(mgr.list) == 0 {
-		return ""
-	}
-	cmd := mgr.list[len(mgr.list)-mgr.pos-1]
-	if mgr.pos != len(mgr.list)-1 {
-		mgr.pos++
-	}
-	return cmd
-}
-
-func (mgr *HistoryMgr) GetNext() string {
-	if len(mgr.list) == 0 || mgr.pos == 0 {
-		return ""
-	}
-	mgr.pos--
-	return mgr.list[len(mgr.list)-mgr.pos-1]
-}
-
-type Direction uint8
-
-const (
-	DirLeft Direction = iota
-	DirRight
-)
-
-type Line struct {
-	buffer []rune
-	pos    int
-	end    int
-}
-
-func (l *Line) Position() int {
-	return l.pos
-}
-
-func (l *Line) Move(direction Direction) bool {
-	if direction == DirLeft && l.pos != 0 {
-		l.pos--
-		return true
-	}
-
-	if direction == DirRight && l.pos != l.end {
-		l.pos++
-		return true
-	}
-	return false
-}
-
-func (l *Line) SetBuffer(str string) {
-	l.buffer = []rune(str)
-	l.pos = len(l.buffer)
-	l.end = len(l.buffer)
-}
-
-func (l *Line) Reset() {
-	l.buffer = make([]rune, 0)
-	l.pos = 0
-	l.end = 0
-}
-
-func (l *Line) Backspace() {
-	if l.pos != 0 {
-		l.buffer = append(l.buffer[:l.pos-1], l.buffer[l.pos:]...)
-		l.pos--
-		l.end--
-	}
-}
-
-func (l *Line) Delete() {
-	if l.pos != l.end {
-		l.buffer = append(l.buffer[:l.pos], l.buffer[l.pos+1:]...)
-		l.end--
-	}
-}
-
-func (l *Line) Character(c rune) {
-	if l.end == l.pos {
-		l.buffer = append(l.buffer, c)
-		l.pos++
-		l.end++
-		return
-	}
-
-	if len(l.buffer) == cap(l.buffer) {
-		newBuffer := make([]rune, len(l.buffer), cap(l.buffer)*2)
-		copy(newBuffer, l.buffer)
-		l.buffer = newBuffer
-	}
-
-	l.buffer = append(l.buffer[:l.pos+1], l.buffer[l.pos:]...)
-	l.buffer[l.pos] = c
-	l.pos++
-	l.end++
-}
-
-func (l *Line) AsString() string {
-	return string(l.buffer[:l.end])
-}
-
-func PrintLine(line *Line) {
-	fmt.Print("\033[5G\033[0K")
-	fmt.Printf("%s", line.AsString())
-	fmt.Printf("\033[%dG", line.Position()+OFFSET)
-}
-
 func Setup(command chan string) {
-	line := Line{}
-	historyMgr := HistoryMgr{}
+	line := interactive.NewLine()
+	historyMgr := interactive.HistoryMgr{}
 	keysEvents, err := keyboard.GetKeys(10)
 	if err != nil {
 		panic(err)
@@ -188,36 +69,36 @@ func Setup(command chan string) {
 				_ = cmd.Run()
 				os.Exit(1)
 			case keyboard.KeyArrowRight:
-				if line.Move(DirRight) {
+				if line.Move(interactive.DirRight) {
 					fmt.Print("\033[1C")
 				}
 			case keyboard.KeyArrowLeft:
-				if line.Move(DirLeft) {
+				if line.Move(interactive.DirLeft) {
 					fmt.Print("\033[1D")
 				}
 			case keyboard.KeyArrowUp:
 				cmd := historyMgr.GetPrevious()
 				if len(cmd) != 0 {
 					line.SetBuffer(cmd)
-					PrintLine(&line)
+					interactive.PrintLine(&line)
 				}
 			case keyboard.KeyArrowDown:
 				cmd := historyMgr.GetNext()
 				if len(cmd) != 0 {
 					line.SetBuffer(cmd)
 				}
-				PrintLine(&line)
+				interactive.PrintLine(&line)
 			case keyboard.KeyDelete:
 				line.Delete()
-				PrintLine(&line)
+				interactive.PrintLine(&line)
 			case keyboard.KeyBackspace:
 				fallthrough
 			case keyboard.KeyBackspace2:
 				line.Backspace()
-				PrintLine(&line)
+				interactive.PrintLine(&line)
 			case keyboard.KeySpace:
 				line.Character(' ')
-				PrintLine(&line)
+				interactive.Update(' ', &line)
 			case keyboard.KeyEnter:
 				fmt.Println()
 				l := line.AsString()
@@ -229,7 +110,7 @@ func Setup(command chan string) {
 			}
 		} else {
 			line.Character(event.Rune)
-			PrintLine(&line)
+			interactive.Update(event.Rune, &line)
 		}
 	}
 }
