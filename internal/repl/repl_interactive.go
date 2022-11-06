@@ -14,7 +14,6 @@ import (
 	"github.com/eiannone/keyboard"
 	"io"
 	"os"
-	"os/exec"
 	"strings"
 )
 
@@ -60,21 +59,26 @@ func Setup(command chan string) {
 			switch event.Key {
 			case keyboard.KeyCtrlC:
 				line.Reset()
-				fmt.Print("\033[5G\033[0K\n")
+				interactive.Home()
 				command <- "\n"
 			case keyboard.KeyCtrlD:
-				fmt.Printf("\nbye\n")
-				cmd := exec.Command("stty", "sane")
-				cmd.Stdin = os.Stdin
-				_ = cmd.Run()
-				os.Exit(1)
+				if line.Size() == 0 {
+					interactive.Exit()
+					os.Exit(1)
+				}
+			case keyboard.KeyCtrlL:
+				if line.Size() == 0 {
+					line.Reset()
+					interactive.ClearScreen()
+					command <- "\n"
+				}
 			case keyboard.KeyArrowRight:
 				if line.Move(interactive.DirRight) {
-					fmt.Print("\033[1C")
+					interactive.MoveRight()
 				}
 			case keyboard.KeyArrowLeft:
 				if line.Move(interactive.DirLeft) {
-					fmt.Print("\033[1D")
+					interactive.MoveLeft()
 				}
 			case keyboard.KeyArrowUp:
 				cmd := historyMgr.GetPrevious()
@@ -98,7 +102,7 @@ func Setup(command chan string) {
 				interactive.PrintLine(&line)
 			case keyboard.KeySpace:
 				line.Character(' ')
-				interactive.Update(' ', &line)
+				interactive.Update(&line, ' ')
 			case keyboard.KeyEnter:
 				fmt.Println()
 				l := line.AsString()
@@ -110,7 +114,7 @@ func Setup(command chan string) {
 			}
 		} else {
 			line.Character(event.Rune)
-			interactive.Update(event.Rune, &line)
+			interactive.Update(&line, event.Rune)
 		}
 	}
 }

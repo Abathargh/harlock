@@ -98,3 +98,13 @@ func (l *Line) Character(c rune) {
 func (l *Line) AsString() string {
 	return string(l.buffer[:l.end])
 }
+
+func (l *Line) AsStringFromCursor() string {
+	return string(l.buffer[l.pos-1 : l.end])
+}
+
+func (l *Line) AsRunes() []rune {
+	ret := make([]rune, len(l.buffer))
+	copy(ret, l.buffer)
+	return ret
+}
