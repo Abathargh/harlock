@@ -13,7 +13,6 @@ import (
 	"github.com/Abathargh/harlock/internal/repl/interactive"
 	"github.com/eiannone/keyboard"
 	"io"
-	"os"
 	"strings"
 )
 
@@ -24,22 +23,15 @@ import (
 // up/down keys to navigate the history.
 //
 // Known problems:
-// - The buffer used to manipulate the current line is
-//   inefficient and is a best-effort kind of implementation;
 // - Line-wrapping is broken, this is mainly tied to the usage
 //   of the ANSI escape characters and the current line management.
-//
-// A nicer approach may consist in getting the width of the terminal
-// and managing the buffer with reference to that, but for now I am
-// keeping it simple and with fewer dependencies.
 //
 
 const PROMPT = ">>> "
 const FOLLOWING = "... "
 
 func Setup(command chan string) {
-	line := interactive.NewLine()
-	historyMgr := interactive.HistoryMgr{}
+	term := interactive.NewTerminal(interactive.NewLine())
 	keysEvents, err := keyboard.GetKeys(10)
 	if err != nil {
 		panic(err)
@@ -58,63 +50,38 @@ func Setup(command chan string) {
 			// ctrl char
 			switch event.Key {
 			case keyboard.KeyCtrlC:
-				line.Reset()
-				interactive.Home()
+				term.Home()
 				command <- "\n"
 			case keyboard.KeyCtrlD:
-				if line.Size() == 0 {
-					interactive.Exit()
-					os.Exit(1)
-				}
+				term.ExitIfBufferEmpty()
 			case keyboard.KeyCtrlL:
-				if line.Size() == 0 {
-					line.Reset()
-					interactive.ClearScreen()
+				if cleared := term.ClearIfBufferEmpty(); cleared {
 					command <- "\n"
 				}
 			case keyboard.KeyArrowRight:
-				if line.Move(interactive.DirRight) {
-					interactive.MoveRight()
-				}
+				term.MoveRight()
 			case keyboard.KeyArrowLeft:
-				if line.Move(interactive.DirLeft) {
-					interactive.MoveLeft()
-				}
+				term.MoveLeft()
 			case keyboard.KeyArrowUp:
-				cmd := historyMgr.GetPrevious()
-				if len(cmd) != 0 {
-					line.SetBuffer(cmd)
-					interactive.PrintLine(&line)
-				}
+				term.PreviousCmd()
 			case keyboard.KeyArrowDown:
-				cmd := historyMgr.GetNext()
-				if len(cmd) != 0 {
-					line.SetBuffer(cmd)
-				}
-				interactive.PrintLine(&line)
+				term.NextCmd()
 			case keyboard.KeyDelete:
-				line.Delete()
-				interactive.PrintLine(&line)
+				term.Delete()
 			case keyboard.KeyBackspace:
 				fallthrough
 			case keyboard.KeyBackspace2:
-				line.Backspace()
-				interactive.PrintLine(&line)
+				term.BackSpace()
 			case keyboard.KeySpace:
-				line.Character(' ')
-				interactive.Update(&line, ' ')
+				term.PutRune(' ')
 			case keyboard.KeyEnter:
-				fmt.Println()
-				l := line.AsString()
-				command <- l + "\n"
-				line.Reset()
-				historyMgr.Push(l)
+				cmd := term.Enter()
+				command <- cmd
 			default:
 				fmt.Printf("\033[0K\rYou pressed: rune %q, key %X", event.Rune, event.Key)
 			}
 		} else {
-			line.Character(event.Rune)
-			interactive.Update(&line, event.Rune)
+			term.PutRune(event.Rune)
 		}
 	}
 }

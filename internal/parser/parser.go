@@ -140,6 +140,7 @@ func (parser *Parser) Errors() []string {
 }
 
 func (parser *Parser) parseStatement() ast.Statement {
+	// TODO parse try here?
 	switch parser.current.Type {
 	case token.VAR:
 		return parser.parseVarStatement()

@@ -5,26 +5,19 @@ import (
 	"os"
 )
 
-type Direction uint8
-
-const (
-	DirLeft Direction = iota
-	DirRight
-)
-
 type Line struct {
 	buffer []rune
 	pos    int
 	end    int
 }
 
-func NewLine() Line {
+func NewLine() *Line {
 	w, h, err := term.GetSize(int(os.Stdout.Fd()))
 	if err != nil {
-		w = 20
+		w = 20 // fallback width
 	}
-	return Line{
-		buffer: make([]rune, w*h),
+	return &Line{
+		buffer: make([]rune, w*h), // pre-allocate a buffer of the max possible size
 		pos:    0,
 		end:    0,
 	}
@@ -38,13 +31,23 @@ func (l *Line) Size() int {
 	return l.end
 }
 
-func (l *Line) Move(direction Direction) bool {
-	if direction == DirLeft && l.pos != 0 {
+func (l *Line) MoveLeft() bool {
+	if l.pos != 0 {
 		l.pos--
 		return true
 	}
+	return false
+}
 
-	if direction == DirRight && l.pos != l.end {
+func (l *Line) MoveNLeft(n int) {
+	if l.pos-n < 0 {
+		l.pos = 0
+	}
+	l.pos -= n
+}
+
+func (l *Line) MoveRight() bool {
+	if l.pos != l.end {
 		l.pos++
 		return true
 	}
@@ -62,12 +65,14 @@ func (l *Line) Reset() {
 	l.end = 0
 }
 
-func (l *Line) Backspace() {
+func (l *Line) Backspace() bool {
 	if l.pos != 0 {
 		copy(l.buffer[l.pos-1:], l.buffer[l.pos:])
 		l.pos--
 		l.end--
+		return true
 	}
+	return false
 }
 
 func (l *Line) Delete() {
@@ -100,6 +105,9 @@ func (l *Line) AsString() string {
 }
 
 func (l *Line) AsStringFromCursor() string {
+	if l.pos == 0 {
+		return l.AsString()
+	}
 	return string(l.buffer[l.pos-1 : l.end])
 }
 
