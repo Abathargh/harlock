@@ -5,24 +5,27 @@ import "strings"
 type HistoryMgr struct {
 	list []string
 	pos  int
-	last []rune
+	last string
 }
 
 func (mgr *HistoryMgr) Push(cmd string) {
-	if len(strings.TrimSpace(cmd)) == 0 {
+	trimmed := strings.TrimSpace(cmd)
+	if len(trimmed) == 0 {
 		return
 	}
-	mgr.list = append(mgr.list, cmd)
+	mgr.list = append(mgr.list, trimmed)
 	mgr.pos = 0
 }
 
-// TODO IDEA: must keep state of current yet not returned line
-// since the line object gets updated to print the data
-
-func (mgr *HistoryMgr) GetPrevious() string {
+func (mgr *HistoryMgr) GetPrevious(curr string) string {
 	if len(mgr.list) == 0 || mgr.pos == len(mgr.list) {
 		return ""
 	}
+
+	if mgr.pos == 0 {
+		mgr.last = curr
+	}
+
 	cmd := mgr.list[len(mgr.list)-mgr.pos-1]
 	if mgr.pos != len(mgr.list)-1 {
 		mgr.pos++
@@ -31,9 +34,14 @@ func (mgr *HistoryMgr) GetPrevious() string {
 }
 
 func (mgr *HistoryMgr) GetNext() string {
-	if len(mgr.list) == 0 || mgr.pos == 0 {
+	if len(mgr.list) == 0 {
 		return ""
 	}
+
+	if mgr.pos == 0 {
+		return mgr.last
+	}
+
 	mgr.pos--
 	return mgr.list[len(mgr.list)-mgr.pos-1]
 }
