@@ -56,7 +56,7 @@ func arrayBuiltinSlice(this object.Object, args ...object.Object) object.Object 
 	return &object.Array{Elements: slice}
 }
 
-func builtinMap(this object.Object, args ...object.Object) object.Object {
+func arrayBuiltinMap(this object.Object, args ...object.Object) object.Object {
 	arrayThis := this.(*object.Array)
 	if len(args) != 1 {
 		return newError("type error: map requires only one argument (a function(x) -> x)")
@@ -75,6 +75,9 @@ func builtinMap(this object.Object, args ...object.Object) object.Object {
 
 	for idx, elem := range arrayThis.Elements {
 		res := callFunction("<anonymous callback>", fun, []object.Object{elem})
+		if res == nil || res.Type() == object.ErrorObj {
+			return newError("type error: map requires a fun taking one arg and returning one value (function(x) -> x)")
+		}
 		retArray[idx] = res
 	}
 	return &object.Array{Elements: retArray}

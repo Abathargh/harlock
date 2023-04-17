@@ -706,6 +706,7 @@ func TestArrayBuiltinMethods(t *testing.T) {
 		{`[1, 2].push(3)`, []int64{1, 2, 3}},
 		{`[1, 2].pop()`, []int64{1}},
 		{`[1, 2, 3, 4].slice(1, 3)`, []int64{2, 3}},
+		{`[1, 2, 3].map(fun(e) { ret e * 2 })`, []int64{2, 4, 6}},
 	}
 
 	for _, testCase := range tests {
