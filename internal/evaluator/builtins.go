@@ -269,3 +269,35 @@ func builtinAsBytes(args ...object.Object) object.Object {
 		return newError("type error: must pass a file (hex, elf, bytes)")
 	}
 }
+
+func builtinMap(args ...object.Object) object.Object {
+	if len(args) != 2 {
+		return newError("type error: open requires two arguments, " +
+			"the input file and a string with the type of file")
+	}
+
+	fun, isFun := args[0].(*object.Function)
+	if !isFun {
+		return newError("type error: expected a function, got %T", args[0])
+	}
+
+	if len(fun.Parameters) != 1 {
+		return newError("type error: map requires only one argument (a one-args function(x) -> x)")
+	}
+
+	switch iterable := args[1].(type) {
+	case *object.Array:
+		retArray := make([]object.Object, len(iterable.Elements))
+
+		for idx, elem := range iterable.Elements {
+			res := callFunction("<anonymous callback>", fun, []object.Object{elem})
+			if res == nil || res.Type() == object.ErrorObj {
+				return newError("type error: map requires a fun taking one arg and returning one value (function(x) -> x)")
+			}
+			retArray[idx] = res
+		}
+		return &object.Array{Elements: retArray}
+	default:
+		return newError("type error: expected an iterable object, got %T", iterable)
+	}
+}

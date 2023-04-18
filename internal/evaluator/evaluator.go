@@ -16,17 +16,7 @@ var (
 	TRUE  = &object.Boolean{Value: true}
 	FALSE = &object.Boolean{Value: false}
 
-	builtins = map[string]*object.Builtin{
-		"hex":      {Function: builtinHex},
-		"len":      {Function: builtinLen},
-		"set":      {Function: builtinSet},
-		"type":     {Function: builtinType},
-		"open":     {Function: builtinOpen},
-		"save":     {Function: builtinSave},
-		"print":    {Function: builtinPrint},
-		"as_bytes": {Function: builtinAsBytes},
-		"contains": {Function: builtinContains},
-	}
+	builtins map[string]*object.Builtin
 
 	builtinMethods = map[object.ObjectType]MethodMapping{
 		object.ArrayObj: {
@@ -61,6 +51,20 @@ var (
 		},
 	}
 )
+
+func init() {
+	builtins = make(map[string]*object.Builtin)
+	builtins["map"] = &object.Builtin{Function: builtinMap}
+	builtins["hex"] = &object.Builtin{Function: builtinHex}
+	builtins["len"] = &object.Builtin{Function: builtinLen}
+	builtins["set"] = &object.Builtin{Function: builtinSet}
+	builtins["type"] = &object.Builtin{Function: builtinType}
+	builtins["open"] = &object.Builtin{Function: builtinOpen}
+	builtins["save"] = &object.Builtin{Function: builtinSave}
+	builtins["print"] = &object.Builtin{Function: builtinPrint}
+	builtins["as_bytes"] = &object.Builtin{Function: builtinAsBytes}
+	builtins["contains"] = &object.Builtin{Function: builtinContains}
+}
 
 func Eval(node ast.Node, env *object.Environment) object.Object {
 	switch currentNode := node.(type) {
