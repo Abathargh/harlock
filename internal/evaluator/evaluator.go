@@ -62,6 +62,7 @@ func init() {
 	builtins["open"] = &object.Builtin{Function: builtinOpen}
 	builtins["save"] = &object.Builtin{Function: builtinSave}
 	builtins["print"] = &object.Builtin{Function: builtinPrint}
+	builtins["reduce"] = &object.Builtin{Function: builtinReduce}
 	builtins["as_bytes"] = &object.Builtin{Function: builtinAsBytes}
 	builtins["contains"] = &object.Builtin{Function: builtinContains}
 }

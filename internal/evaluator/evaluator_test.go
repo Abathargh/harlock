@@ -332,6 +332,8 @@ func TestBuiltinFunctions(t *testing.T) {
 		{`contains(set(5, 8, 22), 22)`, true},
 		{`contains(set(5, 8, 22), 42)`, false},
 		{`map(fun(e) { ret e * 2 }, [1, 2, 3])`, []int64{2, 4, 6}},
+		{`reduce(fun(x, y) { ret x+y }, [10, 5, 7])`, 22},
+		{"var x = 2\nreduce(fun(x, y) { ret x+y }, [10, 5, 7], x)", 24},
 	}
 
 	for _, testCase := range tests {

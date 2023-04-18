@@ -272,8 +272,7 @@ func builtinAsBytes(args ...object.Object) object.Object {
 
 func builtinMap(args ...object.Object) object.Object {
 	if len(args) != 2 {
-		return newError("type error: open requires two arguments, " +
-			"the input file and a string with the type of file")
+		return newError("type error: map requires two arguments, a function literal and an array")
 	}
 
 	fun, isFun := args[0].(*object.Function)
@@ -282,7 +281,7 @@ func builtinMap(args ...object.Object) object.Object {
 	}
 
 	if len(fun.Parameters) != 1 {
-		return newError("type error: map requires only one argument (a one-args function(x) -> x)")
+		return newError("type error: the map callback requires exactly one argument (a one-args function(x) -> x)")
 	}
 
 	switch iterable := args[1].(type) {
@@ -300,4 +299,48 @@ func builtinMap(args ...object.Object) object.Object {
 	default:
 		return newError("type error: expected an iterable object, got %T", iterable)
 	}
+}
+
+func builtinReduce(args ...object.Object) object.Object {
+	argn := len(args)
+	if argn < 2 || argn > 3 {
+		return newError("type error: reduce requires two arguments, " +
+			"a function literal and an array, and can have one optional argument, " +
+			"an accumulator")
+	}
+
+	fun, isFun := args[0].(*object.Function)
+	if !isFun {
+		return newError("type error: expected a function, got %T", args[0])
+	}
+
+	if len(fun.Parameters) != 2 {
+		return newError("type error: the reduce callbacl requires only exactly two arguments " +
+			"(a two args function(x, y) -> z)")
+	}
+
+	arr, isArr := args[1].(*object.Array)
+	if !isArr {
+		return newError("type error: expected an array, got %T", args[1])
+	}
+
+	if len(arr.Elements) == 0 {
+		return newError("type error: expected a non-empty array")
+	}
+
+	var start int
+	var accumulator object.Object
+	if argn == 3 {
+		start = 0
+		accumulator = args[2]
+	} else {
+		start = 1
+		accumulator = arr.Elements[0]
+	}
+
+	for _, elem := range arr.Elements[start:] {
+		accumulator = callFunction("<anonymous function>", fun, []object.Object{accumulator, elem})
+	}
+
+	return accumulator
 }
