@@ -16,45 +16,12 @@ var (
 	TRUE  = &object.Boolean{Value: true}
 	FALSE = &object.Boolean{Value: false}
 
-	builtins map[string]*object.Builtin
-
-	builtinMethods = map[object.ObjectType]MethodMapping{
-		object.ArrayObj: {
-			"pop":   arrayBuiltinPop,
-			"push":  arrayBuiltinPush,
-			"slice": arrayBuiltinSlice,
-		},
-		object.MapObj: {
-			"set": mapBuiltinSet,
-			"pop": mapBuiltinPop,
-		},
-		object.SetObj: {
-			"add":    setBuiltinAdd,
-			"remove": setBuiltinRemove,
-		},
-		object.HexObj: {
-			"record":   hexBuiltinRecord,
-			"size":     hexBuiltinSize,
-			"read_at":  hexBuiltinReadAt,
-			"write_at": hexBuiltinWriteAt,
-		},
-		object.ElfObj: {
-			"has_section":   elfBuiltinHasSection,
-			"sections":      elfBuiltinSections,
-			"write_section": elfBuiltinWriteSection,
-			"read_section":  elfBuiltinReadSection,
-		},
-
-		object.BytesObj: {
-			"read_at":  bytesBuiltinReadAt,
-			"write_at": bytesBuiltinWriteAt,
-		},
-	}
+	builtins       map[string]*object.Builtin
+	builtinMethods map[object.ObjectType]MethodMapping
 )
 
 func init() {
 	builtins = make(map[string]*object.Builtin)
-	builtins["map"] = &object.Builtin{Function: builtinMap}
 	builtins["hex"] = &object.Builtin{Function: builtinHex}
 	builtins["len"] = &object.Builtin{Function: builtinLen}
 	builtins["set"] = &object.Builtin{Function: builtinSet}
@@ -62,9 +29,46 @@ func init() {
 	builtins["open"] = &object.Builtin{Function: builtinOpen}
 	builtins["save"] = &object.Builtin{Function: builtinSave}
 	builtins["print"] = &object.Builtin{Function: builtinPrint}
-	builtins["reduce"] = &object.Builtin{Function: builtinReduce}
 	builtins["as_bytes"] = &object.Builtin{Function: builtinAsBytes}
 	builtins["contains"] = &object.Builtin{Function: builtinContains}
+
+	builtinMethods = make(map[object.ObjectType]MethodMapping)
+	builtinMethods[object.ArrayObj] = MethodMapping{
+		"map":    arrayBuiltinMap,
+		"pop":    arrayBuiltinPop,
+		"push":   arrayBuiltinPush,
+		"slice":  arrayBuiltinSlice,
+		"reduce": arrayBuiltinReduce,
+	}
+
+	builtinMethods[object.MapObj] = MethodMapping{
+		"set": mapBuiltinSet,
+		"pop": mapBuiltinPop,
+	}
+
+	builtinMethods[object.SetObj] = MethodMapping{
+		"add":    setBuiltinAdd,
+		"remove": setBuiltinRemove,
+	}
+
+	builtinMethods[object.HexObj] = MethodMapping{
+		"record":   hexBuiltinRecord,
+		"size":     hexBuiltinSize,
+		"read_at":  hexBuiltinReadAt,
+		"write_at": hexBuiltinWriteAt,
+	}
+
+	builtinMethods[object.ElfObj] = MethodMapping{
+		"has_section":   elfBuiltinHasSection,
+		"sections":      elfBuiltinSections,
+		"write_section": elfBuiltinWriteSection,
+		"read_section":  elfBuiltinReadSection,
+	}
+
+	builtinMethods[object.BytesObj] = MethodMapping{
+		"read_at":  bytesBuiltinReadAt,
+		"write_at": bytesBuiltinWriteAt,
+	}
 }
 
 func Eval(node ast.Node, env *object.Environment) object.Object {
