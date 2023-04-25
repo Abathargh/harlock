@@ -105,8 +105,8 @@ func init() {
 	builtins["contains"] = &object.Builtin{
 		Name: "contains",
 		ArgTypes: []object.ObjectType{
-			object.AnyObj,
 			object.OrType(object.ArrayObj, object.MapObj, object.SetObj),
+			object.AnyObj,
 		},
 		Function: builtinContains,
 	}
@@ -647,7 +647,7 @@ func callFunction(funcName string, funcObj object.Object, args []object.Object) 
 		nameOnly := funcName[:strings.Index(funcName, "(")]
 		return newError("type error: function %q was called with a wrong number of args", nameOnly)
 	case *object.Builtin:
-		return function.Function(args...) // this is an actual go function call
+		return execBuiltin(function, args...) // this is an actual go function call
 	case *object.Method:
 		if len(args) == 1 {
 			return function.MethodFunc(args[0])
