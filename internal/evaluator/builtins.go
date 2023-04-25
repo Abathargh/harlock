@@ -13,13 +13,12 @@ import (
 )
 
 const (
-	typeErrTemplate = "type error: function '%s' requires %d parameters (%s), got %s(%s) (%s)"
+	typeErrTemplate = "type error: function '%s' requires %d parameter(s) (%s), got %s(%s) (%s)"
 	typeErrNoArgs   = "type error: function '%s' - %s"
 )
 
 func checkType(expected, actual object.ObjectType) bool {
 	okTypes := strings.Split(string(expected), "/")
-
 	for _, okType := range okTypes {
 		if object.ObjectType(okType) == actual {
 			return true
