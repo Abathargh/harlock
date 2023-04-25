@@ -22,15 +22,94 @@ var (
 
 func init() {
 	builtins = make(map[string]*object.Builtin)
-	builtins["hex"] = &object.Builtin{Function: builtinHex}
-	builtins["len"] = &object.Builtin{Function: builtinLen}
-	builtins["set"] = &object.Builtin{Function: builtinSet}
-	builtins["type"] = &object.Builtin{Function: builtinType}
-	builtins["open"] = &object.Builtin{Function: builtinOpen}
-	builtins["save"] = &object.Builtin{Function: builtinSave}
-	builtins["print"] = &object.Builtin{Function: builtinPrint}
-	builtins["as_bytes"] = &object.Builtin{Function: builtinAsBytes}
-	builtins["contains"] = &object.Builtin{Function: builtinContains}
+
+	// Builtin: hex(int|string) -> string|array
+	// Converts an integer to a hex-string or a hex-string
+	// with no trailing '0x' to an array of bytes
+	builtins["hex"] = &object.Builtin{
+		Name: "hex",
+		ArgTypes: []object.ObjectType{
+			object.OrType(object.IntegerObj, object.StringObj),
+		},
+		Function: builtinHex,
+	}
+
+	// Builtin: len(string|array|map|set) -> int
+	// Returns the length of the passed collection type.
+	builtins["len"] = &object.Builtin{
+		Name: "len",
+		ArgTypes: []object.ObjectType{
+			object.OrType(object.StringObj, object.ArrayObj, object.MapObj, object.SetObj),
+		},
+		Function: builtinLen,
+	}
+
+	// Builtin: set(...) -> set
+	// Builds a set starting from the passed elements.
+	// If one of the elements is iterable, its elements are
+	// iterated instead of adding the iterable itself.
+	builtins["set"] = &object.Builtin{
+		Name:     "set",
+		ArgTypes: []object.ObjectType{object.AnyVarargs},
+		Function: builtinSet,
+	}
+
+	// Builtin: type(any) -> string
+	// Returns the type of the object as a string.
+	builtins["type"] = &object.Builtin{
+		Name:     "type",
+		ArgTypes: []object.ObjectType{},
+		Function: builtinType,
+	}
+
+	// Builtin: open(string, string) -> file
+	// Attempts to open a file with the name of the first
+	// argument, with the file type specified by the second argument.
+	builtins["open"] = &object.Builtin{
+		Name:     "open",
+		ArgTypes: []object.ObjectType{object.StringObj, object.StringObj},
+		Function: builtinOpen,
+	}
+
+	// Builtin: save(hex_file|elf_file|bytes_file) -> no return
+	// Saves a previously opened file's contents unto the original file.
+	builtins["save"] = &object.Builtin{
+		Name: "save",
+		ArgTypes: []object.ObjectType{
+			object.OrType(object.HexObj, object.ElfObj, object.BytesObj),
+		},
+		Function: builtinSave,
+	}
+
+	// Builtin: print(...) -> no return
+	// Prints every passed object as a string separated by a space, with
+	// a newline character at the end.
+	builtins["print"] = &object.Builtin{
+		Name:     "print",
+		ArgTypes: []object.ObjectType{object.AnyVarargs},
+		Function: builtinPrint,
+	}
+
+	// Builtin: as_bytes(hex_file|elf_file|bytes_file) -> array
+	// Returns an array containing the passed file as a stream of bytes.
+	builtins["as_bytes"] = &object.Builtin{
+		Name: "as_bytes",
+		ArgTypes: []object.ObjectType{
+			object.OrType(object.HexObj, object.ElfObj, object.BytesObj),
+		},
+		Function: builtinAsBytes,
+	}
+
+	// Builtin: contains(any, array|map|set) -> bool
+	// Returns true if the collection contains the passed object.
+	builtins["contains"] = &object.Builtin{
+		Name: "contains",
+		ArgTypes: []object.ObjectType{
+			object.AnyObj,
+			object.OrType(object.ArrayObj, object.MapObj, object.SetObj),
+		},
+		Function: builtinContains,
+	}
 
 	builtinMethods = make(map[object.ObjectType]MethodMapping)
 	builtinMethods[object.ArrayObj] = MethodMapping{
@@ -568,7 +647,7 @@ func callFunction(funcName string, funcObj object.Object, args []object.Object) 
 		nameOnly := funcName[:strings.Index(funcName, "(")]
 		return newError("type error: function %q was called with a wrong number of args", nameOnly)
 	case *object.Builtin:
-		return function.Function(args...)
+		return function.Function(args...) // this is an actual go function call
 	case *object.Method:
 		if len(args) == 1 {
 			return function.MethodFunc(args[0])

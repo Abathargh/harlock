@@ -15,6 +15,8 @@ import (
 type ObjectType string
 
 const (
+	AnyObj         = "Any"
+	AnyVarargs     = "Any Varargs"
 	NullObj        = "Null"
 	TypeObj        = "Type"
 	SetObj         = "Set"
@@ -165,6 +167,8 @@ func (str *String) HashKey() HashKey {
 }
 
 type Builtin struct {
+	Name     string
+	ArgTypes []ObjectType
 	Function BuiltinFunction
 }
 
@@ -410,4 +414,12 @@ func (bf *BytesFile) Inspect() string {
 		}
 	}
 	return buf.String()
+}
+
+func OrType(baseTypes ...ObjectType) ObjectType {
+	typeStrList := make([]string, len(baseTypes))
+	for idx, obj := range baseTypes {
+		typeStrList[idx] = string(obj)
+	}
+	return ObjectType(strings.Join(typeStrList, "/"))
 }
