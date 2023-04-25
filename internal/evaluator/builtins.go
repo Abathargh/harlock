@@ -6,10 +6,9 @@ import (
 	"github.com/Abathargh/harlock/internal/evaluator/bytes"
 	harlockElf "github.com/Abathargh/harlock/internal/evaluator/elf"
 	"github.com/Abathargh/harlock/internal/evaluator/hex"
+	"github.com/Abathargh/harlock/internal/object"
 	"os"
 	"strconv"
-
-	"github.com/Abathargh/harlock/internal/object"
 )
 
 func builtinHex(args ...object.Object) object.Object {
@@ -95,12 +94,8 @@ func builtinPrint(args ...object.Object) object.Object {
 
 func builtinSet(args ...object.Object) object.Object {
 	set := &object.Set{Elements: make(map[object.HashKey]object.Object)}
-	if len(args) == 0 {
-		return set
-	}
-
-	if len(args) == 1 {
-		switch seq := args[0].(type) {
+	for _, arg := range args {
+		switch seq := arg.(type) {
 		case *object.Array:
 			for _, elem := range seq.Elements {
 				hashableElem, isHashable := elem.(object.Hashable)
@@ -111,12 +106,10 @@ func builtinSet(args ...object.Object) object.Object {
 				hash := hashableElem.HashKey()
 				set.Elements[hash] = elem
 			}
-			return set
 		case *object.Map:
 			for key, pair := range seq.Mappings {
 				set.Elements[key] = pair.Key
 			}
-			return set
 		default:
 			hashableElem, isHashable := seq.(object.Hashable)
 			if !isHashable {
@@ -125,18 +118,7 @@ func builtinSet(args ...object.Object) object.Object {
 
 			hash := hashableElem.HashKey()
 			set.Elements[hash] = seq
-			return set
 		}
-	}
-
-	for _, elem := range args {
-		hashableElem, isHashable := elem.(object.Hashable)
-		if !isHashable {
-			return newError("the passed key is not an hashable object")
-		}
-
-		hash := hashableElem.HashKey()
-		set.Elements[hash] = elem
 	}
 	return set
 }
