@@ -40,6 +40,8 @@ go install github.com/Abathargh/harlock/cmd/harlock@latest
 
 ## Build 
 
+**Required: Go 1.18+**
+
 Builds are executed using the linker flags to strip the debug symbols 
 from the binaries, to achieve smaller sized executables.
 
