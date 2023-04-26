@@ -164,14 +164,14 @@ func TestErrorHandling(t *testing.T) {
 		input            string
 		expectedErrorMsg string
 	}{
-		{"false + true", "unknown operator: Bool + Bool"},
-		{"false + 12", "type mismatch: Bool + Int"},
-		{"-true", "unknown operator: -Bool"},
-		{"~false", "unknown operator: ~Bool"},
-		{"if 2 < 3 { ret 12 + true }", "type mismatch: Int + Bool"},
-		{`"string" + 12`, "type mismatch: String + Int"},
-		{`"string" + true`, "type mismatch: String + Bool"},
-		{`"string" - "string2"`, "unknown operator: String - String"},
+		{"false + true", "unknown operator Bool + Bool on line 1"},
+		{"false + 12", "type mismatch: Bool + Int on line 1"},
+		{"-true", "unsupported operand 'Bool' for unary minus on line 1"},
+		{"~false", "unsupported operand 'Bool' for bitwise not on line 1"},
+		{"if 2 < 3 { ret 12 + true }", "type mismatch: Int + Bool on line 1"},
+		{`"string" + 12`, "type mismatch: String + Int on line 1"},
+		{`"string" + true`, "type mismatch: String + Bool on line 1"},
+		{`"string" - "string2"`, "unsupported operator String - String on line 1"},
 	}
 
 	for _, testCase := range tests {

@@ -74,7 +74,7 @@ func arrayBuiltinMap(this object.Object, args ...object.Object) object.Object {
 	retArray := make([]object.Object, len(arrayThis.Elements))
 
 	for idx, elem := range arrayThis.Elements {
-		res := callFunction("<anonymous callback>", fun, []object.Object{elem})
+		res := callFunction("<anonymous callback>", fun, []object.Object{elem}, noLineInfo)
 		if res == nil || res.Type() == object.ErrorObj {
 			return newError("type error: map requires a fun taking one arg and returning one value (function(x) -> x)")
 		}
@@ -117,7 +117,7 @@ func arrayBuiltinReduce(this object.Object, args ...object.Object) object.Object
 	}
 
 	for _, elem := range arrayThis.Elements[start:] {
-		accumulator = callFunction("<anonymous function>", fun, []object.Object{accumulator, elem})
+		accumulator = callFunction("<anonymous function>", fun, []object.Object{accumulator, elem}, noLineInfo)
 	}
 
 	return accumulator

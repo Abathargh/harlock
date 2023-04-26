@@ -159,8 +159,9 @@ func (parser *Parser) parseVarStatement() *ast.VarStatement {
 	}
 
 	statement.Name = &ast.Identifier{
-		Token: parser.current,
-		Value: parser.current.Literal,
+		LineMetadata: ast.LineMetadata{LineNumber: parser.lex.GetLineNumber()},
+		Token:        parser.current,
+		Value:        parser.current.Literal,
 	}
 
 	if !parser.expectPeek(token.ASSIGN) {
@@ -176,7 +177,10 @@ func (parser *Parser) parseVarStatement() *ast.VarStatement {
 }
 
 func (parser *Parser) parseReturnStatement() *ast.ReturnStatement {
-	statement := &ast.ReturnStatement{Token: parser.current}
+	statement := &ast.ReturnStatement{
+		LineMetadata: ast.LineMetadata{LineNumber: parser.lex.GetLineNumber()},
+		Token:        parser.current,
+	}
 
 	if parser.peeked.Type == token.NEWLINE || parser.peeked.Type == token.RBRACE {
 		statement.ReturnValue = nil
@@ -198,7 +202,10 @@ func (parser *Parser) parseReturnStatement() *ast.ReturnStatement {
 }
 
 func (parser *Parser) parseExpressionStatement() *ast.ExpressionStatement {
-	statement := &ast.ExpressionStatement{Token: parser.current}
+	statement := &ast.ExpressionStatement{
+		LineMetadata: ast.LineMetadata{LineNumber: parser.lex.GetLineNumber()},
+		Token:        parser.current,
+	}
 
 	statement.Expression = parser.parseExpression(LOWEST)
 
@@ -235,13 +242,19 @@ func (parser *Parser) parseExpression(prio Priority) ast.Expression {
 }
 
 func (parser *Parser) parseIdentifier() ast.Expression {
-	return &ast.Identifier{Token: parser.current, Value: parser.current.Literal}
+	return &ast.Identifier{
+		LineMetadata: ast.LineMetadata{LineNumber: parser.lex.GetLineNumber()},
+		Token:        parser.current, Value: parser.current.Literal,
+	}
 }
 
 func (parser *Parser) parseIntegerLiteral() ast.Expression {
 	var value int64
 	var err error
-	literal := &ast.IntegerLiteral{Token: parser.current}
+	literal := &ast.IntegerLiteral{
+		LineMetadata: ast.LineMetadata{LineNumber: parser.lex.GetLineNumber()},
+		Token:        parser.current,
+	}
 	if strings.HasPrefix(parser.current.Literal, "0x") ||
 		strings.HasPrefix(parser.current.Literal, "0X") {
 		value, err = strconv.ParseInt(parser.current.Literal[2:], 16, 64)
@@ -259,21 +272,34 @@ func (parser *Parser) parseIntegerLiteral() ast.Expression {
 }
 
 func (parser *Parser) parseBoolean() ast.Expression {
-	return &ast.Boolean{Token: parser.current, Value: parser.current.Type == token.TRUE}
+	return &ast.Boolean{
+		LineMetadata: ast.LineMetadata{LineNumber: parser.lex.GetLineNumber()},
+		Token:        parser.current,
+		Value:        parser.current.Type == token.TRUE,
+	}
 }
 
 func (parser *Parser) parseStringLiteral() ast.Expression {
-	return &ast.StringLiteral{Token: parser.current, Value: parser.current.Literal}
+	return &ast.StringLiteral{
+		LineMetadata: ast.LineMetadata{LineNumber: parser.lex.GetLineNumber()},
+		Token:        parser.current,
+		Value:        parser.current.Literal,
+	}
 }
 
 func (parser *Parser) parseArrayLiteral() ast.Expression {
-	return &ast.ArrayLiteral{Token: parser.current, Elements: parser.parseExpressionList(token.RBRACK)}
+	return &ast.ArrayLiteral{
+		LineMetadata: ast.LineMetadata{LineNumber: parser.lex.GetLineNumber()},
+		Token:        parser.current,
+		Elements:     parser.parseExpressionList(token.RBRACK),
+	}
 }
 
 func (parser *Parser) parseMapLiteral() ast.Expression {
 	mapLiteral := &ast.MapLiteral{
-		Token:    parser.current,
-		Mappings: make(map[ast.Expression]ast.Expression),
+		LineMetadata: ast.LineMetadata{LineNumber: parser.lex.GetLineNumber()},
+		Token:        parser.current,
+		Mappings:     make(map[ast.Expression]ast.Expression),
 	}
 
 	for parser.peeked.Type != token.RBRACE {
@@ -317,7 +343,10 @@ func (parser *Parser) parseGroupedExpression() ast.Expression {
 
 func (parser *Parser) parseIfExpression() ast.Expression {
 	// TODO modify AST for if and this to allow else if
-	expression := &ast.IfExpression{Token: parser.current}
+	expression := &ast.IfExpression{
+		LineMetadata: ast.LineMetadata{LineNumber: parser.lex.GetLineNumber()},
+		Token:        parser.current,
+	}
 
 	parser.nextToken()
 	expression.Condition = parser.parseExpression(LOWEST)
@@ -337,14 +366,20 @@ func (parser *Parser) parseIfExpression() ast.Expression {
 }
 
 func (parser *Parser) parseTryExpression() ast.Expression {
-	tryExpression := &ast.TryExpression{Token: parser.current}
+	tryExpression := &ast.TryExpression{
+		LineMetadata: ast.LineMetadata{LineNumber: parser.lex.GetLineNumber()},
+		Token:        parser.current,
+	}
 	parser.nextToken()
 	tryExpression.Expression = parser.parseExpression(LOWEST)
 	return tryExpression
 }
 
 func (parser *Parser) parseFunctionLiteral() ast.Expression {
-	functionLiteral := &ast.FunctionLiteral{Token: parser.current}
+	functionLiteral := &ast.FunctionLiteral{
+		LineMetadata: ast.LineMetadata{LineNumber: parser.lex.GetLineNumber()},
+		Token:        parser.current,
+	}
 	if !parser.expectPeek(token.LPAREN) {
 		return nil
 	}
@@ -359,8 +394,9 @@ func (parser *Parser) parseFunctionLiteral() ast.Expression {
 
 func (parser *Parser) parseCallExpression(function ast.Expression) ast.Expression {
 	callExpression := &ast.CallExpression{
-		Token:    parser.current,
-		Function: function,
+		LineMetadata: ast.LineMetadata{LineNumber: parser.lex.GetLineNumber()},
+		Token:        parser.current,
+		Function:     function,
 	}
 	callExpression.Arguments = parser.parseExpressionList(token.RPAREN)
 
@@ -369,8 +405,9 @@ func (parser *Parser) parseCallExpression(function ast.Expression) ast.Expressio
 
 func (parser *Parser) parseMethodExpression(caller ast.Expression) ast.Expression {
 	methodExpression := &ast.MethodCallExpression{
-		Token:  parser.current,
-		Caller: caller,
+		LineMetadata: ast.LineMetadata{LineNumber: parser.lex.GetLineNumber()},
+		Token:        parser.current,
+		Caller:       caller,
 	}
 	if !parser.expectPeek(token.IDENT) {
 		return nil
@@ -385,7 +422,11 @@ func (parser *Parser) parseMethodExpression(caller ast.Expression) ast.Expressio
 }
 
 func (parser *Parser) parseIndexExpression(array ast.Expression) ast.Expression {
-	indexExpression := &ast.IndexExpression{Token: parser.current, Left: array}
+	indexExpression := &ast.IndexExpression{
+		LineMetadata: ast.LineMetadata{LineNumber: parser.lex.GetLineNumber()},
+		Token:        parser.current,
+		Left:         array,
+	}
 	parser.nextToken()
 	indexExpression.Index = parser.parseExpression(LOWEST)
 
@@ -397,8 +438,9 @@ func (parser *Parser) parseIndexExpression(array ast.Expression) ast.Expression 
 
 func (parser *Parser) parsePrefixExpression() ast.Expression {
 	prefixExpression := &ast.PrefixExpression{
-		Token:    parser.current,
-		Operator: parser.current.Literal,
+		LineMetadata: ast.LineMetadata{LineNumber: parser.lex.GetLineNumber()},
+		Token:        parser.current,
+		Operator:     parser.current.Literal,
 	}
 
 	parser.nextToken()
@@ -408,6 +450,7 @@ func (parser *Parser) parsePrefixExpression() ast.Expression {
 
 func (parser *Parser) parseInfixExpression(leftExpression ast.Expression) ast.Expression {
 	infixExpression := &ast.InfixExpression{
+		LineMetadata:   ast.LineMetadata{LineNumber: parser.lex.GetLineNumber()},
 		Token:          parser.current,
 		LeftExpression: leftExpression,
 		Operator:       parser.current.Literal,
@@ -447,7 +490,11 @@ func (parser *Parser) parseFunctionParameters() []*ast.Identifier {
 	}
 
 	parser.nextToken()
-	parameter := &ast.Identifier{Token: parser.current, Value: parser.current.Literal}
+	parameter := &ast.Identifier{
+		LineMetadata: ast.LineMetadata{LineNumber: parser.lex.GetLineNumber()},
+		Token:        parser.current,
+		Value:        parser.current.Literal,
+	}
 	parameters = append(parameters, parameter)
 
 	for parser.peeked.Type == token.COMMA {

@@ -180,7 +180,7 @@ func builtinContains(args ...object.Object) object.Object {
 	switch cont := args[0].(type) {
 	case *object.Array:
 		for _, elem := range cont.Elements {
-			res := evalInfixExpression("==", args[1], elem)
+			res := evalInfixExpression("==", args[1], elem, noLineInfo)
 			boolRes := res.(*object.Boolean)
 			if boolRes.Value {
 				return TRUE

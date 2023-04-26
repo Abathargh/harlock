@@ -22,7 +22,12 @@ type Expression interface {
 	expressionNode()
 }
 
+type LineMetadata struct {
+	LineNumber int
+}
+
 type Program struct {
+	LineMetadata
 	Statements []Statement
 }
 
@@ -42,6 +47,7 @@ func (program *Program) String() string {
 }
 
 type Identifier struct {
+	LineMetadata
 	Token token.Token
 	Value string
 }
@@ -57,6 +63,7 @@ func (id *Identifier) String() string {
 }
 
 type VarStatement struct {
+	LineMetadata
 	Token token.Token
 	Name  *Identifier
 	Value Expression
@@ -81,6 +88,7 @@ func (vs *VarStatement) String() string {
 }
 
 type ReturnStatement struct {
+	LineMetadata
 	Token       token.Token
 	ReturnValue Expression
 }
@@ -102,6 +110,7 @@ func (rs *ReturnStatement) String() string {
 }
 
 type ExpressionStatement struct {
+	LineMetadata
 	Token      token.Token
 	Expression Expression
 }
@@ -120,6 +129,7 @@ func (es *ExpressionStatement) String() string {
 }
 
 type IntegerLiteral struct {
+	LineMetadata
 	Token token.Token
 	Value int64
 }
@@ -135,6 +145,7 @@ func (il *IntegerLiteral) String() string {
 }
 
 type PrefixExpression struct {
+	LineMetadata
 	Token           token.Token
 	Operator        string
 	RightExpression Expression
@@ -156,6 +167,7 @@ func (pe *PrefixExpression) String() string {
 }
 
 type InfixExpression struct {
+	LineMetadata
 	Token           token.Token
 	LeftExpression  Expression
 	Operator        string
@@ -179,6 +191,7 @@ func (ie *InfixExpression) String() string {
 }
 
 type Boolean struct {
+	LineMetadata
 	Token token.Token
 	Value bool
 }
@@ -194,6 +207,7 @@ func (b *Boolean) String() string {
 }
 
 type IfExpression struct {
+	LineMetadata
 	Token       token.Token
 	Condition   Expression
 	Consequence *BlockStatement
@@ -222,6 +236,7 @@ func (ife *IfExpression) String() string {
 }
 
 type BlockStatement struct {
+	LineMetadata
 	Token      token.Token
 	Statements []Statement
 }
@@ -241,6 +256,7 @@ func (bs *BlockStatement) String() string {
 }
 
 type FunctionLiteral struct {
+	LineMetadata
 	Token      token.Token
 	Parameters []*Identifier
 	Body       *BlockStatement
@@ -270,6 +286,7 @@ func (fl *FunctionLiteral) String() string {
 }
 
 type CallExpression struct {
+	LineMetadata
 	Token token.Token
 	// this can either be an identifier e.g. fun1()
 	// or a func literal e.g. fun(a){ a }(12)
@@ -298,6 +315,7 @@ func (ce *CallExpression) String() string {
 }
 
 type NoOp struct {
+	LineMetadata
 	Token token.Token
 }
 
@@ -312,6 +330,7 @@ func (no *NoOp) String() string {
 }
 
 type StringLiteral struct {
+	LineMetadata
 	Token token.Token
 	Value string
 }
@@ -327,6 +346,7 @@ func (sl *StringLiteral) String() string {
 }
 
 type ArrayLiteral struct {
+	LineMetadata
 	Token    token.Token
 	Elements []Expression
 }
@@ -351,6 +371,7 @@ func (al *ArrayLiteral) String() string {
 }
 
 type IndexExpression struct {
+	LineMetadata
 	Token token.Token
 	Left  Expression
 	Index Expression
@@ -372,6 +393,7 @@ func (ie *IndexExpression) String() string {
 }
 
 type MapLiteral struct {
+	LineMetadata
 	Token    token.Token
 	Mappings map[Expression]Expression
 }
@@ -396,6 +418,7 @@ func (hl *MapLiteral) String() string {
 }
 
 type MethodCallExpression struct {
+	LineMetadata
 	Token  token.Token
 	Caller Expression
 	Called *CallExpression
@@ -421,6 +444,7 @@ func (ml *MethodCallExpression) String() string {
 }
 
 type TryExpression struct {
+	LineMetadata
 	Token      token.Token
 	Expression Expression
 }

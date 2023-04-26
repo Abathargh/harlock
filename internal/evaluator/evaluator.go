@@ -11,6 +11,8 @@ import (
 
 type MethodMapping map[string]object.MethodFunction
 
+const noLineInfo = -1
+
 var (
 	NULL  = &object.Null{}
 	TRUE  = &object.Boolean{Value: true}
@@ -167,7 +169,7 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		if isError(right) {
 			return right
 		}
-		return evalPrefixExpression(currentNode.Operator, right)
+		return evalPrefixExpression(currentNode.Operator, right, currentNode.LineNumber)
 	case *ast.InfixExpression:
 		left := Eval(currentNode.LeftExpression, env)
 		if isError(left) {
@@ -177,7 +179,7 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		if isError(right) {
 			return right
 		}
-		return evalInfixExpression(currentNode.Operator, left, right)
+		return evalInfixExpression(currentNode.Operator, left, right, currentNode.LineNumber)
 	case *ast.BlockStatement:
 		return evalBlockStatement(currentNode, env)
 	case *ast.IfExpression:
@@ -204,10 +206,10 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return &object.Function{Parameters: parameters, Body: functionBody, Env: env}
 	case *ast.CallExpression:
 		functionCall := Eval(currentNode.Function, env)
-		args := evalExpressions(currentNode.Arguments, env)
-		return callFunction(currentNode.String(), functionCall, args)
+		args := evalExpressions(currentNode.Arguments, env, currentNode.LineNumber)
+		return callFunction(currentNode.String(), functionCall, args, currentNode.LineNumber)
 	case *ast.ArrayLiteral:
-		elements := evalExpressions(currentNode.Elements, env)
+		elements := evalExpressions(currentNode.Elements, env, currentNode.LineNumber)
 		if len(elements) == 1 && isError(elements[0]) {
 			return elements[0]
 		}
@@ -221,7 +223,7 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		if isError(index) {
 			return index
 		}
-		return evalIndexExpression(left, index)
+		return evalIndexExpression(left, index, currentNode.LineNumber)
 	case *ast.MapLiteral:
 		return evalMapLiteral(currentNode, env)
 	case *ast.MethodCallExpression:
@@ -250,41 +252,41 @@ func evalProgram(program *ast.Program, env *object.Environment) object.Object {
 	return result
 }
 
-func evalPrefixExpression(operator string, right object.Object) object.Object {
+func evalPrefixExpression(operator string, right object.Object, line int) object.Object {
 	switch operator {
 	case "!":
 		return evalUnaryNotExpression(right)
 	case "-":
-		return evalUnaryMinusExpression(right)
+		return evalUnaryMinusExpression(right, line)
 	case "~":
-		return evalBitwiseNotExpression(right)
+		return evalBitwiseNotExpression(right, line)
 	default:
-		return newError("unknown operator: %s%s", operator, right.Type())
+		return newError("unknown operator: %s%s on line %d", operator, right.Type(), line)
 	}
 }
 
-func evalInfixExpression(operator string, left, right object.Object) object.Object {
+func evalInfixExpression(operator string, left, right object.Object, line int) object.Object {
 	if left.Type() != right.Type() {
-		return newError("type mismatch: %s %s %s", left.Type(), operator, right.Type())
+		return newError("type mismatch: %s %s %s on line %d", left.Type(), operator, right.Type(), line)
 	}
 
 	switch left.Type() {
 	case object.IntegerObj:
-		return evalIntegerInfixExpression(operator, left, right)
+		return evalIntegerInfixExpression(operator, left, right, line)
 	case object.BooleanObj:
-		return evalBooleanInfixExpression(operator, left, right)
+		return evalBooleanInfixExpression(operator, left, right, line)
 	case object.StringObj:
-		return evalStringInfixExpression(operator, left, right)
+		return evalStringInfixExpression(operator, left, right, line)
 	case object.TypeObj:
-		return evalTypeInfixExpression(operator, left, right)
+		return evalTypeInfixExpression(operator, left, right, line)
 	case object.ArrayObj:
-		return evalArrayInfixExpression(operator, left, right)
+		return evalArrayInfixExpression(operator, left, right, line)
 	case object.MapObj:
-		return evalMapInfixExpression(operator, left, right)
+		return evalMapInfixExpression(operator, left, right, line)
 	case object.SetObj:
-		return evalSetInfixExpression(operator, left, right)
+		return evalSetInfixExpression(operator, left, right, line)
 	default:
-		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		return newError("unknown operator: %s %s %s on line %d", left.Type(), operator, right.Type(), line)
 	}
 }
 
@@ -328,18 +330,18 @@ func evalUnaryNotExpression(right object.Object) object.Object {
 	}
 }
 
-func evalUnaryMinusExpression(right object.Object) object.Object {
+func evalUnaryMinusExpression(right object.Object, line int) object.Object {
 	if right.Type() != object.IntegerObj {
-		return newError("unknown operator: -%s", right.Type())
+		return newError("unsupported operand '%s' for unary minus on line %d", right.Type(), line)
 	}
 
 	intValue := right.(*object.Integer).Value
 	return &object.Integer{Value: -intValue}
 }
 
-func evalBitwiseNotExpression(right object.Object) object.Object {
+func evalBitwiseNotExpression(right object.Object, line int) object.Object {
 	if right.Type() != object.IntegerObj {
-		return newError("unknown operator: ~%s", right.Type())
+		return newError("unsupported operand '%s' for bitwise not on line %d", right.Type(), line)
 	}
 
 	intValue := right.(*object.Integer).Value
@@ -359,7 +361,7 @@ func evalBitwiseNotExpression(right object.Object) object.Object {
 	return &object.Integer{Value: invertedValue}
 }
 
-func evalIntegerInfixExpression(operator string, left, right object.Object) object.Object {
+func evalIntegerInfixExpression(operator string, left, right object.Object, line int) object.Object {
 	leftValue := left.(*object.Integer).Value
 	rightValue := right.(*object.Integer).Value
 
@@ -372,12 +374,12 @@ func evalIntegerInfixExpression(operator string, left, right object.Object) obje
 		return &object.Integer{Value: leftValue * rightValue}
 	case "/":
 		if rightValue == 0 {
-			return newError("division by zero")
+			return newError("division by zero on line %d", line)
 		}
 		return &object.Integer{Value: leftValue / rightValue}
 	case "%":
 		if rightValue == 0 {
-			return newError("division by zero")
+			return newError("division by zero on line %d", line)
 		}
 		return &object.Integer{Value: leftValue % rightValue}
 	case "|":
@@ -388,12 +390,12 @@ func evalIntegerInfixExpression(operator string, left, right object.Object) obje
 		return &object.Integer{Value: leftValue ^ rightValue}
 	case "<<":
 		if rightValue < 0 {
-			return newError("negative bit-shift")
+			return newError("attemping a negative bit-shift on line %d", line)
 		}
 		return &object.Integer{Value: leftValue << rightValue}
 	case ">>":
 		if rightValue < 0 {
-			return newError("negative bit-shift")
+			return newError("attemping a negative bit-shift on line %d", line)
 		}
 		return &object.Integer{Value: leftValue >> rightValue}
 	case "==":
@@ -409,11 +411,11 @@ func evalIntegerInfixExpression(operator string, left, right object.Object) obje
 	case "<=":
 		return getBoolReference(leftValue <= rightValue)
 	default:
-		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		return newError("unknown operator %s %s %s on line %d", left.Type(), operator, right.Type(), line)
 	}
 }
 
-func evalBooleanInfixExpression(operator string, left, right object.Object) object.Object {
+func evalBooleanInfixExpression(operator string, left, right object.Object, line int) object.Object {
 	leftValue := left.(*object.Boolean).Value
 	rightValue := right.(*object.Boolean).Value
 
@@ -427,11 +429,11 @@ func evalBooleanInfixExpression(operator string, left, right object.Object) obje
 	case "||":
 		return getBoolReference(leftValue || rightValue)
 	default:
-		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		return newError("unknown operator %s %s %s on line %d", left.Type(), operator, right.Type(), line)
 	}
 }
 
-func evalStringInfixExpression(operator string, left, right object.Object) object.Object {
+func evalStringInfixExpression(operator string, left, right object.Object, line int) object.Object {
 	leftString := left.(*object.String).Value
 	rightString := right.(*object.String).Value
 	switch operator {
@@ -442,11 +444,11 @@ func evalStringInfixExpression(operator string, left, right object.Object) objec
 	case "!=":
 		return getBoolReference(leftString != rightString)
 	default:
-		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		return newError("unsupported operator %s %s %s on line %d", left.Type(), operator, right.Type(), line)
 	}
 }
 
-func evalTypeInfixExpression(operator string, left, right object.Object) object.Object {
+func evalTypeInfixExpression(operator string, left, right object.Object, line int) object.Object {
 	leftType := left.(*object.Type).Value
 	rightType := right.(*object.Type).Value
 	switch operator {
@@ -455,11 +457,11 @@ func evalTypeInfixExpression(operator string, left, right object.Object) object.
 	case "!=":
 		return getBoolReference(leftType != rightType)
 	default:
-		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		return newError("unknown operator %s %s %s on line %d", left.Type(), operator, right.Type(), line)
 	}
 }
 
-func evalArrayInfixExpression(operator string, left, right object.Object) object.Object {
+func evalArrayInfixExpression(operator string, left, right object.Object, line int) object.Object {
 	leftArray := left.(*object.Array)
 	rightArray := right.(*object.Array)
 	switch operator {
@@ -470,11 +472,11 @@ func evalArrayInfixExpression(operator string, left, right object.Object) object
 	case "!=":
 		return getBoolReference(!arrayEquals(leftArray, rightArray))
 	default:
-		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		return newError("unknown operator %s %s %s on line %d", left.Type(), operator, right.Type(), line)
 	}
 }
 
-func evalMapInfixExpression(operator string, left, right object.Object) object.Object {
+func evalMapInfixExpression(operator string, left, right object.Object, line int) object.Object {
 	leftMap := left.(*object.Map)
 	rightMap := right.(*object.Map)
 	switch operator {
@@ -483,11 +485,11 @@ func evalMapInfixExpression(operator string, left, right object.Object) object.O
 	case "!=":
 		return getBoolReference(!mapEquals(leftMap, rightMap))
 	default:
-		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		return newError("unknown operator %s %s %s on line %d", left.Type(), operator, right.Type(), line)
 	}
 }
 
-func evalSetInfixExpression(operator string, left, right object.Object) object.Object {
+func evalSetInfixExpression(operator string, left, right object.Object, line int) object.Object {
 	leftSet := left.(*object.Set)
 	rightSet := right.(*object.Set)
 	set := &object.Set{Elements: make(map[object.HashKey]object.Object)}
@@ -526,7 +528,7 @@ func evalSetInfixExpression(operator string, left, right object.Object) object.O
 	case "!=":
 		return getBoolReference(!setEquals(leftSet, rightSet))
 	default:
-		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+		return newError("unknown operator %s %s %s on line %d", left.Type(), operator, right.Type(), line)
 	}
 }
 
@@ -538,14 +540,16 @@ func evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object
 	if builtin, ok := builtins[node.Value]; ok {
 		return builtin
 	}
-	return newError("identifier not found: %s", node.Value)
+	return newError("undefined identifier '%s' on line %d", node.Value, node.LineNumber)
 }
 
-func evalExpressions(expressions []ast.Expression, env *object.Environment) []object.Object {
+func evalExpressions(expressions []ast.Expression, env *object.Environment, line int) []object.Object {
 	var evaluatedExpressions []object.Object
 	for _, expression := range expressions {
 		evaluatedExpr := Eval(expression, env)
 		if isError(evaluatedExpr) {
+			err := evaluatedExpr.(*object.Error)
+			err.Message += fmt.Sprintf(" on line %d", line)
 			return []object.Object{evaluatedExpr}
 		}
 		evaluatedExpressions = append(evaluatedExpressions, evaluatedExpr)
@@ -553,33 +557,33 @@ func evalExpressions(expressions []ast.Expression, env *object.Environment) []ob
 	return evaluatedExpressions
 }
 
-func evalIndexExpression(indexed, index object.Object) object.Object {
+func evalIndexExpression(indexed, index object.Object, line int) object.Object {
 	switch {
 	case indexed.Type() == object.ArrayObj && index.Type() == object.IntegerObj:
-		return evalArrayIndexExpression(indexed, index)
+		return evalArrayIndexExpression(indexed, index, line)
 	case indexed.Type() == object.MapObj:
-		return evalMapIndexExpression(indexed, index)
+		return evalMapIndexExpression(indexed, index, line)
 	default:
-		return newError("the index used to access an array must be an integer")
+		return newError("attempting to use a non-integer as an array index on line %d", line)
 	}
 }
 
-func evalArrayIndexExpression(array, index object.Object) object.Object {
+func evalArrayIndexExpression(array, index object.Object, line int) object.Object {
 	arrayObject := array.(*object.Array)
 	idx := index.(*object.Integer).Value
 	maxIdx := int64(len(arrayObject.Elements) - 1)
 
 	if idx < 0 || idx > maxIdx {
-		return newError("index error: %d is out of bounds", idx)
+		return newError("attempted an out of bounds access to an array with index %d on line %d ", idx, line)
 	}
 	return arrayObject.Elements[idx]
 }
 
-func evalMapIndexExpression(hashmap, index object.Object) object.Object {
+func evalMapIndexExpression(hashmap, index object.Object, line int) object.Object {
 	mapObject := hashmap.(*object.Map)
 	key, isHashable := index.(object.Hashable)
 	if !isHashable {
-		return newError("type error: index is not hashable")
+		return newError("attempted to access a map with a non-hashable key on line %d", line)
 	}
 
 	pair, ok := mapObject.Mappings[key.HashKey()]
@@ -601,7 +605,7 @@ func evalMapLiteral(mapLiteral *ast.MapLiteral, env *object.Environment) object.
 
 		hashKey, ok := key.(object.Hashable)
 		if !ok {
-			return newError("the passed key is not an hashable object")
+			return newError("attempted to access a map with a non-hashable key on line %d", mapLiteral.LineNumber)
 		}
 
 		value := Eval(valueNode, env)
@@ -621,10 +625,10 @@ func evalMethodExpression(methodExpression *ast.MethodCallExpression, env *objec
 	methodName := methodExpression.Called.Function.String()
 	method, exists := builtinMethods[evaluatedCaller.Type()][methodName]
 	if !exists {
-		return newError("object of type %s has no method called %s", evaluatedCaller.Type(), methodName)
+		return newError("%s has no method called %s on line %d", evaluatedCaller.Type(), methodName, methodExpression.LineNumber)
 	}
 
-	args := evalExpressions(methodExpression.Called.Arguments, env)
+	args := evalExpressions(methodExpression.Called.Arguments, env, methodExpression.LineNumber)
 	if len(args) == 1 && isError(args[0]) {
 		return args[0]
 	}
@@ -633,10 +637,10 @@ func evalMethodExpression(methodExpression *ast.MethodCallExpression, env *objec
 	copy(expArgs[1:], args)
 
 	methodObj := &object.Method{MethodFunc: method}
-	return callFunction(methodName, methodObj, expArgs)
+	return callFunction(methodName, methodObj, expArgs, methodExpression.LineNumber)
 }
 
-func callFunction(funcName string, funcObj object.Object, args []object.Object) object.Object {
+func callFunction(funcName string, funcObj object.Object, args []object.Object, line int) object.Object {
 	switch function := funcObj.(type) {
 	case *object.Function:
 		if validateFunctionCall(function, args) {
@@ -645,7 +649,7 @@ func callFunction(funcName string, funcObj object.Object, args []object.Object) 
 			return unwrapReturnValue(evaluatedFunction)
 		}
 		nameOnly := funcName[:strings.Index(funcName, "(")]
-		return newError("type error: function %q was called with a wrong number of args", nameOnly)
+		return newError("function %q was called with a wrong number of args on line %d", nameOnly, line)
 	case *object.Builtin:
 		return execBuiltin(function, args...) // this is an actual go function call
 	case *object.Method:
@@ -654,7 +658,7 @@ func callFunction(funcName string, funcObj object.Object, args []object.Object) 
 		}
 		return function.MethodFunc(args[0], args[1:]...)
 	default:
-		return newError("identifier is not a function: %s", funcObj.Type())
+		return newError("'%s' identifier is not a function on line %d", funcObj.Type(), line)
 	}
 }
 
@@ -709,7 +713,7 @@ func arrayEquals(obj1, obj2 *object.Array) bool {
 	}
 
 	for idx, elem := range obj1.Elements {
-		res := evalInfixExpression("==", elem, obj2.Elements[idx])
+		res := evalInfixExpression("==", elem, obj2.Elements[idx], noLineInfo)
 		if res != TRUE {
 			return false
 		}
@@ -731,7 +735,7 @@ func mapEquals(obj1, obj2 *object.Map) bool {
 		hashedKey := hashable.HashKey()
 		elemObj2, exists := obj2.Mappings[hashedKey]
 
-		if !exists || evalInfixExpression("==", pair.Value, elemObj2.Value) != TRUE {
+		if !exists || evalInfixExpression("==", pair.Value, elemObj2.Value, noLineInfo) != TRUE {
 			return false
 		}
 	}
@@ -749,7 +753,7 @@ func setEquals(obj1, obj2 *object.Set) bool {
 
 	for key, val := range obj1.Elements {
 		elemObj2, exists := obj2.Elements[key]
-		if !exists || evalInfixExpression("==", val, elemObj2) != TRUE {
+		if !exists || evalInfixExpression("==", val, elemObj2, noLineInfo) != TRUE {
 			return false
 		}
 	}
