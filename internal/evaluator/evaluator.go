@@ -60,7 +60,7 @@ func init() {
 	// Returns the type of the object as a string.
 	builtins["type"] = &object.Builtin{
 		Name:     "type",
-		ArgTypes: []object.ObjectType{},
+		ArgTypes: []object.ObjectType{object.AnyObj},
 		Function: builtinType,
 	}
 
