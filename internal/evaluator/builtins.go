@@ -135,7 +135,7 @@ func builtinType(args ...object.Object) object.Object {
 }
 
 func builtinPrint(args ...object.Object) object.Object {
-	var ifcArgs []interface{}
+	var ifcArgs []any
 	for _, arg := range args {
 		if arg != nil {
 			ifcArgs = append(ifcArgs, arg.Inspect())

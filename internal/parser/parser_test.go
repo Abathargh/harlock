@@ -14,7 +14,7 @@ func TestVarStatements(t *testing.T) {
 	tests := []struct {
 		input              string
 		expectedIdentifier string
-		expectedValue      interface{}
+		expectedValue      any
 	}{
 		{"var x = 5", "x", 5},
 		{"var test = true", "test", true},
@@ -46,7 +46,7 @@ func TestVarStatements(t *testing.T) {
 func TestReturnStatement(t *testing.T) {
 	tests := []struct {
 		input         string
-		expectedValue interface{}
+		expectedValue any
 	}{
 		{"ret 5\n", 5},
 		{"ret true\n", true},
@@ -148,7 +148,7 @@ func TestParsingPrefixExpressions(t *testing.T) {
 	tests := []struct {
 		input    string
 		prefixOp string
-		Value    interface{}
+		Value    any
 	}{
 		{"!10", "!", 10},
 		{"-15", "-", 15},
@@ -190,9 +190,9 @@ func TestParsingPrefixExpressions(t *testing.T) {
 func TestParsingInfixOperators(t *testing.T) {
 	tests := []struct {
 		input        string
-		leftOperand  interface{}
+		leftOperand  any
 		operator     string
-		rightOperand interface{}
+		rightOperand any
 	}{
 		{"5 + 5", 5, "+", 5},
 		{"5 - 5", 5, "-", 5},
@@ -766,7 +766,7 @@ func testIdentifier(t *testing.T, expression ast.Expression, value string) bool 
 	return true
 }
 
-func testLiteralExpression(t *testing.T, expression ast.Expression, expected interface{}) bool {
+func testLiteralExpression(t *testing.T, expression ast.Expression, expected any) bool {
 	switch value := expected.(type) {
 	case int:
 		return testIntegerLiteral(t, expression, int64(value))
@@ -781,8 +781,8 @@ func testLiteralExpression(t *testing.T, expression ast.Expression, expected int
 	return false
 }
 
-func testInfixExpression(t *testing.T, expression ast.Expression, left interface{},
-	operator string, right interface{}) bool {
+func testInfixExpression(t *testing.T, expression ast.Expression, left any,
+	operator string, right any) bool {
 	operatorExpression, ok := expression.(*ast.InfixExpression)
 	if !ok {
 		t.Errorf("expected InfixExpression type, got %T", expression)

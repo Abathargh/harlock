@@ -110,7 +110,7 @@ func TestUnaryNotOperator(t *testing.T) {
 func TestIfElseExpression(t *testing.T) {
 	tests := []struct {
 		input    string
-		expected interface{}
+		expected any
 	}{
 		{"if true { 1 }", 1},
 		{"if false { 1 }", nil},
@@ -248,7 +248,7 @@ func TestFunction(t *testing.T) {
 func TestStringOperators(t *testing.T) {
 	tests := []struct {
 		input          string
-		expectedOutput interface{}
+		expectedOutput any
 	}{
 		{`'single ' + 'single'`, "single single"},
 		{`'single ' + "double"`, "single double"},
@@ -307,7 +307,7 @@ func TestStringLiteral(t *testing.T) {
 func TestBuiltinFunctions(t *testing.T) {
 	tests := []struct {
 		input    string
-		expected interface{}
+		expected any
 	}{
 		{`hex(255)`, "0xff"},
 		{`hex("ffab21")`, object.ArrayObj},
@@ -369,7 +369,7 @@ func TestArrayLiterals(t *testing.T) {
 func TestArrayIndexExpressions(t *testing.T) {
 	tests := []struct {
 		input    string
-		expected interface{}
+		expected any
 	}{
 		{"[1][0]", 1},
 		{"[1, 2, 4][1 + 1]", 4},
@@ -679,7 +679,7 @@ func TestMapLiterals(t *testing.T) {
 func TestMapIndexExpressions(t *testing.T) {
 	tests := []struct {
 		input    string
-		expected interface{}
+		expected any
 	}{
 		{`{"test": 2}["test"]`, 2},
 		{`{10: 3}[10]`, 3},
@@ -819,7 +819,7 @@ h.read_at(0x2000*16, 4)`,
 func TestArrayInfixMethods(t *testing.T) {
 	tests := []struct {
 		input    string
-		expected interface{}
+		expected any
 	}{
 		{"[1, 2] + [4, 10]", []int64{1, 2, 4, 10}},
 		{"[4, 10] + [1, 2]", []int64{4, 10, 1, 2}},
@@ -861,7 +861,7 @@ func TestMapInfixMethods(t *testing.T) {
 func TestSetInfixOperations(t *testing.T) {
 	tests := []struct {
 		input    string
-		expected interface{}
+		expected any
 	}{
 		{"set(1, 2) + set(2, 3)", []int64{1, 2, 3}},
 		{"set(2, 3) + set(1, 2)", []int64{1, 2, 3}},
@@ -906,7 +906,7 @@ func TestSetBuiltinMethods(t *testing.T) {
 func TestTryExpression(t *testing.T) {
 	tests := []struct {
 		input    string
-		expected interface{}
+		expected any
 	}{
 		{"var a = try 1\na", 1},
 		{"var a = fun() { ret try 12 }\na()", 12},

@@ -760,7 +760,7 @@ func setEquals(obj1, obj2 *object.Set) bool {
 	return true
 }
 
-func newError(format string, args ...interface{}) *object.Error {
+func newError(format string, args ...any) *object.Error {
 	return &object.Error{Message: fmt.Sprintf(format, args...)}
 }
 
