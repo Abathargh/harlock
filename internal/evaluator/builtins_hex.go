@@ -17,9 +17,9 @@ func hexBuiltinRecord(this object.Object, args ...object.Object) object.Object {
 		return newError("type error: index must be a positive integer")
 	}
 
-	readData := hexThis.File.Record(int(idx.Value))
-	if readData == nil {
-		return newError("hex error: invalid record index")
+	readData, err := hexThis.File.Record(int(idx.Value))
+	if err != nil {
+		return newError("hex error: %s", err.Error())
 	}
 
 	return &object.String{Value: readData.AsString()}
@@ -32,6 +32,16 @@ func hexBuiltinSize(this object.Object, args ...object.Object) object.Object {
 	}
 
 	size := hexThis.File.Size()
+	return &object.Integer{Value: int64(size)}
+}
+
+func hexBuiltinBinarySize(this object.Object, args ...object.Object) object.Object {
+	hexThis := this.(*object.HexFile)
+	if len(args) != 0 {
+		return newError("type error: binarySize does not require any input arguments")
+	}
+
+	size := hexThis.File.BinarySize()
 	return &object.Integer{Value: int64(size)}
 }
 

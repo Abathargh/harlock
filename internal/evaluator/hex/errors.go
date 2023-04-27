@@ -37,4 +37,5 @@ const (
 	NoEofRecordErr    = FileError("the passed hex file does not contain an EOF record")
 	AccessOutOfBounds = FileError("cannot access the hex file out of the length of the encoded program")
 	RecordErr         = FileError("faulty record")
+	RecordOutOfBounds = FileError("attempting to request a record out of the bounds of the file")
 )

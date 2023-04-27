@@ -425,7 +425,8 @@ func TestHexFile(t *testing.T) {
 
 	rows := strings.Split(hexFile, "\n")
 	for idx, recordString := range rows[:len(rows)-1] {
-		currentStrRecord := hex.File.Record(idx).AsString()
+		currentRecord, _ := hex.File.Record(idx)
+		currentStrRecord := currentRecord.AsString()
 		if currentStrRecord != recordString {
 			t.Errorf("expected record[%d] = %q, gt %q",
 				idx, recordString, currentStrRecord)
@@ -755,6 +756,11 @@ h.record(2)`,
 			`var h = open("test.hex", "hex")
 h.size()`,
 			int64(8),
+		},
+		{
+			`var h = open("test.hex", "hex")
+h.binary_size()`,
+			int64(68),
 		},
 		{
 			`var h = open("test.hex", "hex")

@@ -133,10 +133,11 @@ func init() {
 	}
 
 	builtinMethods[object.HexObj] = MethodMapping{
-		"record":   hexBuiltinRecord,
-		"size":     hexBuiltinSize,
-		"read_at":  hexBuiltinReadAt,
-		"write_at": hexBuiltinWriteAt,
+		"record":      hexBuiltinRecord,
+		"size":        hexBuiltinSize,
+		"read_at":     hexBuiltinReadAt,
+		"write_at":    hexBuiltinWriteAt,
+		"binary_size": hexBuiltinBinarySize,
 	}
 
 	builtinMethods[object.ElfObj] = MethodMapping{
