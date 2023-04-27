@@ -27,7 +27,7 @@ func checkType(expected, actual object.ObjectType) bool {
 	return false
 }
 
-func typeArgsError(fun *object.Builtin, args []object.Object) *object.Error {
+func typeArgsError(name string, reqTypes []object.ObjectType, args []object.Object) *object.Error {
 	argValues := make([]string, len(args))
 	for idx, obj := range args {
 		argValues[idx] = strings.ReplaceAll(obj.Inspect(), "\n", " ")
@@ -40,43 +40,46 @@ func typeArgsError(fun *object.Builtin, args []object.Object) *object.Error {
 
 	argsValueStr := strings.Join(argValues, ", ")
 	argsTypeStr := strings.Join(argTypes, ", ")
-	reqStrList := make([]string, len(fun.ArgTypes))
-	for idx, reqArg := range fun.ArgTypes {
+	reqStrList := make([]string, len(reqTypes))
+	for idx, reqArg := range reqTypes {
 		reqStrList[idx] = string(reqArg)
 	}
 
 	reqStr := strings.Join(reqStrList, ", ")
 
-	errorStr := fmt.Sprintf(typeErrTemplate, fun.Name, len(fun.ArgTypes), reqStr, fun.Name, argsValueStr, argsTypeStr)
+	errorStr := fmt.Sprintf(typeErrTemplate, name, len(reqTypes), reqStr, name, argsValueStr, argsTypeStr)
 	return &object.Error{Message: errorStr}
 }
 
-func execBuiltin(builtin *object.Builtin, args ...object.Object) object.Object {
-	argcExpected := len(builtin.ArgTypes)
+func execBuiltin(builtin object.CallableBuiltin, args ...object.Object) object.Object {
+	name := builtin.GetBuiltinName()
+	argTypes := builtin.GetBuiltinArgTypes()
+
+	argcExpected := len(argTypes)
 	argc := len(args)
 
-	if argcExpected == 1 && builtin.ArgTypes[0] == object.AnyVarargs {
+	if argcExpected == 1 && argTypes[0] == object.AnyVarargs {
 		goto exec
 	}
 
 	if argcExpected != argc {
-		return typeArgsError(builtin, args)
+		return typeArgsError(name, argTypes, args)
 	}
 
-	for idx, argExpected := range builtin.ArgTypes {
+	for idx, argExpected := range argTypes {
 		if argExpected == object.AnyObj {
 			continue
 		}
 		if !checkType(argExpected, args[idx].Type()) {
-			return typeArgsError(builtin, args)
+			return typeArgsError(name, argTypes, args)
 		}
 	}
 
 exec:
-	outcome := builtin.Function(args...)
+	outcome := builtin.Call(args...)
 	switch typedOutcome := outcome.(type) {
 	case *object.Error:
-		return newError(typeErrNoArgs, builtin.Name, typedOutcome.Message)
+		return newError(typeErrNoArgs, name, typedOutcome.Message)
 	default:
 		return outcome
 	}

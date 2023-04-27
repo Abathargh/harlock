@@ -166,20 +166,6 @@ func (str *String) HashKey() HashKey {
 	return HashKey{Type: StringObj, Value: hash.Sum64()}
 }
 
-type Builtin struct {
-	Name     string
-	ArgTypes []ObjectType
-	Function BuiltinFunction
-}
-
-func (b *Builtin) Type() ObjectType {
-	return BuiltinObj
-}
-
-func (b *Builtin) Inspect() string {
-	return "builtin"
-}
-
 type Type struct {
 	Value ObjectType
 }
@@ -241,8 +227,57 @@ func (h *Map) Inspect() string {
 	return buf.String()
 }
 
+type CallableBuiltin interface {
+	GetBuiltinName() string
+	GetBuiltinArgTypes() []ObjectType
+	Call(args ...Object) Object
+}
+
+type Builtin struct {
+	Name     string
+	ArgTypes []ObjectType
+	Function BuiltinFunction
+}
+
+func (b *Builtin) GetBuiltinName() string {
+	return b.Name
+}
+
+func (b *Builtin) GetBuiltinArgTypes() []ObjectType {
+	return b.ArgTypes
+}
+
+func (b *Builtin) Call(args ...Object) Object {
+	return b.Function(args...)
+}
+
+func (b *Builtin) Type() ObjectType {
+	return BuiltinObj
+}
+
+func (b *Builtin) Inspect() string {
+	return "builtin"
+}
+
 type Method struct {
+	Name       string
+	ArgTypes   []ObjectType
 	MethodFunc MethodFunction
+}
+
+func (m *Method) GetBuiltinName() string {
+	return m.Name
+}
+
+func (m *Method) GetBuiltinArgTypes() []ObjectType {
+	return m.ArgTypes
+}
+
+func (m *Method) Call(args ...Object) Object {
+	if len(args) == 1 {
+		return m.MethodFunc(args[0])
+	}
+	return m.MethodFunc(args[0], args[1:]...)
 }
 
 func (m *Method) Type() ObjectType {
