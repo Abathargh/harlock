@@ -7,6 +7,7 @@ import (
 
 // File implements an Intel Hex-encoded file
 type File struct {
+	binSize int
 	records []*Record
 }
 
@@ -22,6 +23,7 @@ type recordView struct {
 // from its source, parsing the records and validating them
 func ReadAll(in io.ByteScanner) (*File, error) {
 	eof := false
+	binSize := 0
 	var records []*Record
 	rec, err := ParseRecord(in)
 	for ; err == nil; rec, err = ParseRecord(in) {
@@ -29,14 +31,17 @@ func ReadAll(in io.ByteScanner) (*File, error) {
 			return nil, MultipleEofErr
 		}
 		records = append(records, rec)
-		if rec.Type() == EOFRecord {
+		switch rec.Type() {
+		case DataRecord:
+			binSize += rec.ByteCount()
+		case EOFRecord:
 			eof = true
 		}
 	}
 
 	if err == NoMoreRecordsErr {
 		if records != nil && records[len(records)-1].rType == EOFRecord {
-			return &File{records: records}, nil
+			return &File{binSize: binSize, records: records}, nil
 		}
 		return nil, NoEofRecordErr
 	}
@@ -60,12 +65,18 @@ func (hf *File) Size() int {
 	return len(hf.records)
 }
 
-// Record returns the idx-th record or nil if it does not exist
-func (hf *File) Record(idx int) *Record {
+// BinarySize returns the size of the hex-encoded actual data.
+// This is equivalent to the size of the generated .bin.
+func (hf *File) BinarySize() int {
+	return hf.binSize
+}
+
+// Record returns the idx-th record
+func (hf *File) Record(idx int) (*Record, error) {
 	if idx < 0 || idx >= len(hf.records) {
-		return nil
+		return nil, RecordOutOfBounds
 	}
-	return hf.records[idx]
+	return hf.records[idx], nil
 }
 
 // ReadAt reads size bytes starting from pos position in the
