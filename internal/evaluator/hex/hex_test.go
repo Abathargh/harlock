@@ -4,8 +4,132 @@ import (
 	"bytes"
 	"errors"
 	"reflect"
+	"strings"
 	"testing"
 )
+
+func TestIterator(t *testing.T) {
+	test := `:04000000FA00000200
+:020000021000EC
+:10C20000E0A5E6F6FDFFE0AEE00FE6FCFDFFE6FD93
+:10C21000FFFFF6F50EFE4B66F2FA0CFEF2F40EFE90
+:10C22000F04EF05FF06CF07DCA0050C2F086F097DF
+:10C23000F04AF054BCF5204830592D02E018BB03F9
+:020000022000DC
+:04000000FA00000200
+:00000001FF
+`
+	file, err := ReadAll(bytes.NewBufferString(test))
+	if err != nil {
+		t.Errorf("Expected valid hex file got %s", err)
+	}
+
+	count := 0
+	splitted := strings.Split(test, "\n")
+	it := file.Iterator()
+	for record := range it {
+		currData := record.AsBytes()
+		textData := append([]byte(splitted[count]), 13, 10)
+		if !bytes.Equal(currData, textData) {
+			t.Errorf("Hex record mismatch, expected %v, got %v", textData, currData)
+		}
+		count++
+	}
+
+	if count != len(splitted)-1 { // -1 since splitting the backtick-escaped text generates an empty line
+		t.Errorf("Expected %d records, got %d", count, len(splitted))
+	}
+}
+
+func TestSize(t *testing.T) {
+	test := `:04000000FA00000200
+:020000021000EC
+:10C20000E0A5E6F6FDFFE0AEE00FE6FCFDFFE6FD93
+:10C21000FFFFF6F50EFE4B66F2FA0CFEF2F40EFE90
+:10C22000F04EF05FF06CF07DCA0050C2F086F097DF
+:10C23000F04AF054BCF5204830592D02E018BB03F9
+:020000022000DC
+:04000000FA00000200
+:00000001FF
+`
+	file, err := ReadAll(bytes.NewBufferString(test))
+	if err != nil {
+		t.Errorf("Expected valid hex file got %s", err)
+	}
+
+	splittedSize := len(strings.Split(test, "\n")) - 1 // -1: same as before
+	size := file.Size()
+
+	if size != splittedSize {
+		t.Errorf("Expected #records = %d, got %d", splittedSize, size)
+	}
+}
+
+func TestBinarySize(t *testing.T) {
+	test := `:04000000FA00000200
+:020000021000EC
+:10C20000E0A5E6F6FDFFE0AEE00FE6FCFDFFE6FD93
+:10C21000FFFFF6F50EFE4B66F2FA0CFEF2F40EFE90
+:10C22000F04EF05FF06CF07DCA0050C2F086F097DF
+:10C23000F04AF054BCF5204830592D02E018BB03F9
+:020000022000DC
+:04000000FA00000200
+:00000001FF
+`
+	testSize := 72
+
+	file, err := ReadAll(bytes.NewBufferString(test))
+	if err != nil {
+		t.Errorf("Expected valid hex file got %s", err)
+	}
+
+	size := file.BinarySize()
+	if size != testSize {
+		t.Errorf("Expected bin size = %d, got %d", testSize, size)
+	}
+}
+
+func TestRecord(t *testing.T) {
+	test := `:04000000FA00000200
+:020000021000EC
+:10C20000E0A5E6F6FDFFE0AEE00FE6FCFDFFE6FD93
+:10C21000FFFFF6F50EFE4B66F2FA0CFEF2F40EFE90
+:10C22000F04EF05FF06CF07DCA0050C2F086F097DF
+:10C23000F04AF054BCF5204830592D02E018BB03F9
+:020000022000DC
+:04000000FA00000200
+:00000001FF
+`
+
+	file, err := ReadAll(bytes.NewBufferString(test))
+	if err != nil {
+		t.Errorf("Expected valid hex file got %s", err)
+	}
+
+	_, errLower := file.Record(-1)
+	if errLower == nil {
+		t.Errorf("Expected an out of bounds error for negative indexes")
+	}
+
+	_, errUpper := file.Record(100)
+	if errUpper == nil {
+		t.Errorf("Expected an out of bounds error for indexes >= size")
+	}
+
+	splitted := strings.Split(test, "\n")
+	recordNum := len(splitted) - 1 // -1: same as before
+
+	for idx := 0; idx < recordNum; idx++ {
+		rec, err := file.Record(idx)
+		if err != nil {
+			t.Errorf("Got an error when getting a record with a valid index: %d", idx)
+		}
+
+		if rec.AsString() != splitted[idx] {
+			t.Errorf("Expected record '%s', got '%s'", splitted[idx], rec.AsString())
+		}
+	}
+}
 
 func TestReadAll(t *testing.T) {
 	tests := []struct {
