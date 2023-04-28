@@ -8,57 +8,34 @@ const (
 
 func hexBuiltinRecord(this object.Object, args ...object.Object) object.Object {
 	hexThis := this.(*object.HexFile)
-	if len(args) != 1 {
-		return newError("type error: read_at requires one argument (the index of the record to read)")
-	}
 
-	idx, isInt := args[0].(*object.Integer)
-	if !isInt || idx.Value < 0 {
-		return newError("type error: index must be a positive integer")
-	}
-
+	idx := args[0].(*object.Integer)
 	readData, err := hexThis.File.Record(int(idx.Value))
 	if err != nil {
 		return newError("hex error: %s", err.Error())
 	}
-
 	return &object.String{Value: readData.AsString()}
 }
 
 func hexBuiltinSize(this object.Object, args ...object.Object) object.Object {
 	hexThis := this.(*object.HexFile)
-	if len(args) != 0 {
-		return newError("type error: size does not require any input arguments")
-	}
-
 	size := hexThis.File.Size()
 	return &object.Integer{Value: int64(size)}
 }
 
 func hexBuiltinBinarySize(this object.Object, args ...object.Object) object.Object {
 	hexThis := this.(*object.HexFile)
-	if len(args) != 0 {
-		return newError("type error: binarySize does not require any input arguments")
-	}
-
 	size := hexThis.File.BinarySize()
 	return &object.Integer{Value: int64(size)}
 }
 
 func hexBuiltinReadAt(this object.Object, args ...object.Object) object.Object {
 	hexThis := this.(*object.HexFile)
-	if len(args) != 2 {
-		return newError("type error: read_at requires two arguments (the address and the size)")
-	}
 
-	pos, isInt := args[0].(*object.Integer)
-	if !isInt || pos.Value < 0 {
-		return newError("type error: position must be a positive integer")
-	}
-
-	size, isInt := args[1].(*object.Integer)
-	if !isInt {
-		return newError("type error: size must be an integer")
+	pos := args[0].(*object.Integer)
+	size := args[1].(*object.Integer)
+	if pos.Value < 0 || size.Value < 0 {
+		return newError("type error: position and size must be positive integers")
 	}
 
 	readData, err := hexThis.File.ReadAt(uint32(pos.Value), int(size.Value))
@@ -76,18 +53,11 @@ func hexBuiltinReadAt(this object.Object, args ...object.Object) object.Object {
 
 func hexBuiltinWriteAt(this object.Object, args ...object.Object) object.Object {
 	hexThis := this.(*object.HexFile)
-	if len(args) != 2 {
-		return newError("type error: write_at requires two arguments (the address and the data)")
-	}
 
-	pos, isInt := args[0].(*object.Integer)
-	if !isInt || pos.Value < 0 {
+	pos := args[0].(*object.Integer)
+	data := args[1].(*object.Array)
+	if pos.Value < 0 {
 		return newError("type error: address must be a positive integer")
-	}
-
-	data, isArr := args[1].(*object.Array)
-	if !isArr {
-		return newError("type error: data must be an array")
 	}
 
 	byteArr := make([]byte, len(data.Elements))

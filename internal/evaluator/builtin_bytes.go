@@ -4,19 +4,11 @@ import "github.com/Abathargh/harlock/internal/object"
 
 func bytesBuiltinWriteAt(this object.Object, args ...object.Object) object.Object {
 	bytesThis := this.(*object.BytesFile)
-	if len(args) != 2 {
-		return newError("type error: write_at requires two arguments " +
-			"(the position and the data)")
-	}
 
-	position, isInt := args[0].(*object.Integer)
-	if !isInt || position.Value < 0 {
+	position := args[0].(*object.Integer)
+	data := args[1].(*object.Array)
+	if position.Value < 0 {
 		return newError("type error: position must be a positive integer")
-	}
-
-	data, isArray := args[1].(*object.Array)
-	if !isArray {
-		return newError("type error: data must be an array")
 	}
 
 	byteArr := make([]byte, len(data.Elements))
@@ -39,19 +31,11 @@ func bytesBuiltinWriteAt(this object.Object, args ...object.Object) object.Objec
 
 func bytesBuiltinReadAt(this object.Object, args ...object.Object) object.Object {
 	bytesThis := this.(*object.BytesFile)
-	if len(args) != 2 {
-		return newError("type error: read_at requires two arguments " +
-			"(the position and the size of the data to read)")
-	}
 
-	position, isInt := args[1].(*object.Integer)
-	if !isInt || position.Value < 0 {
-		return newError("type error: position must be a positive integer")
-	}
-
-	size, isInt := args[1].(*object.Integer)
-	if !isInt || size.Value < 0 {
-		return newError("type error: size must be a positive integer")
+	position := args[1].(*object.Integer)
+	size := args[1].(*object.Integer)
+	if position.Value < 0 || size.Value < 0 {
+		return newError("type error: position and size must be positive integers")
 	}
 
 	readData, err := bytesThis.Bytes.ReadAt(int(position.Value), int(size.Value))

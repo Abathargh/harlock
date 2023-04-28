@@ -4,9 +4,6 @@ import "github.com/Abathargh/harlock/internal/object"
 
 func mapBuiltinSet(this object.Object, args ...object.Object) object.Object {
 	mapThis := this.(*object.Map)
-	if len(args) != 2 {
-		return newError("type error: set requires two arguments (he key and the element to set)")
-	}
 
 	hashableKey, isHashable := args[0].(object.Hashable)
 	if !isHashable {
@@ -20,9 +17,6 @@ func mapBuiltinSet(this object.Object, args ...object.Object) object.Object {
 
 func mapBuiltinPop(this object.Object, args ...object.Object) object.Object {
 	mapThis := this.(*object.Map)
-	if len(args) != 1 {
-		return newError("type error: set requires noe argument (he key to pop)")
-	}
 
 	hashableKey, isHashable := args[0].(object.Hashable)
 	if !isHashable {

@@ -115,30 +115,47 @@ func init() {
 
 	builtinMethods = make(map[object.ObjectType]MethodMapping)
 	builtinMethods[object.ArrayObj] = MethodMapping{
+		// Builtin: array.map(function) -> array
+		// Returns an array where the nth element is equals to the returned value of
+		// the passed function being called with the original array nth element as an
+		// input argument.
 		"map": &object.Method{
 			Name:       "map",
 			ArgTypes:   []object.ObjectType{object.FunctionObj},
 			MethodFunc: arrayBuiltinMap,
 		},
 
+		// Builtin: array.pop() -> any
+		// Removes the last element from the array and returns it.
 		"pop": &object.Method{
 			Name:       "pop",
 			ArgTypes:   []object.ObjectType{},
 			MethodFunc: arrayBuiltinPop,
 		},
 
+		// Builtin: array.push(any) -> array
+		// Adds an element to the tail of the array and returns the new array.
+		// The original array remains unchanged.
 		"push": &object.Method{
 			Name:       "push",
 			ArgTypes:   []object.ObjectType{object.AnyObj},
 			MethodFunc: arrayBuiltinPush,
 		},
 
+		// Builtin: array.slice(int, int) -> array
+		// Returns a sub-array slicing the original array in the [args[0]:args[1)
+		// interval. This returns a new array and copies each element in the new
+		// array. Lists/Maps/Sets/Files are copied as references.
 		"slice": &object.Method{
 			Name:       "slice",
 			ArgTypes:   []object.ObjectType{object.IntegerObj, object.IntegerObj},
 			MethodFunc: arrayBuiltinSlice,
 		},
 
+		// Builtin: array.reduce(function [, any]) -> any
+		// Applies the passed function to each element of the array; the first argument
+		// gets used as the result of the previous iteration. An accumulator init value
+		// can be passed as an optional final argument.
 		"reduce": &object.Method{
 			Name:       "reduce",
 			ArgTypes:   []object.ObjectType{object.FunctionObj, object.AnyOptional},
@@ -147,12 +164,16 @@ func init() {
 	}
 
 	builtinMethods[object.MapObj] = MethodMapping{
+		// Builtin: map.set(any, any) -> no return
+		// Adds the (arg[0], arg[1]) key value couple to the map. This mutates the map.
 		"set": &object.Method{
 			Name:       "set",
 			ArgTypes:   []object.ObjectType{object.AnyObj, object.AnyObj},
 			MethodFunc: mapBuiltinSet,
 		},
 
+		// Builtin: map.pop(any) -> no return
+		// Removes the passed key from the map if it exists. This mutates the map.
 		"pop": &object.Method{
 			Name:       "pop",
 			ArgTypes:   []object.ObjectType{object.AnyObj},
@@ -161,12 +182,16 @@ func init() {
 	}
 
 	builtinMethods[object.SetObj] = MethodMapping{
+		// Builtin: set.add(any) -> no return
+		// Adds the element to the set. This mutates the set.
 		"add": &object.Method{
 			Name:       "add",
 			ArgTypes:   []object.ObjectType{object.AnyObj},
 			MethodFunc: setBuiltinAdd,
 		},
 
+		// Builtin: set.remove(any) -> no return
+		// Removes the passed element from the set if it exists. This mutates the set.
 		"remove": &object.Method{
 			Name:       "remove",
 			ArgTypes:   []object.ObjectType{object.AnyObj},
@@ -175,6 +200,8 @@ func init() {
 	}
 
 	builtinMethods[object.HexObj] = MethodMapping{
+		// Builtin: hex.record(int) -> string
+		// Returns the nth record as a string, if it exists and is a valid index, or an error.
 		"record": &object.Method{
 			Name:       "record",
 			ArgTypes:   []object.ObjectType{object.IntegerObj},
@@ -182,24 +209,37 @@ func init() {
 		},
 
 		"size": &object.Method{
+			// Builtin: hex.size(int) -> int
+			// Returns the size of the file as a number of records it contains.
 			Name:       "size",
 			ArgTypes:   []object.ObjectType{},
 			MethodFunc: hexBuiltinSize,
 		},
 
 		"read_at": &object.Method{
+			// Builtin: hex.read_at(int, int) -> array
+			// Attempts to read arg[1] number of bytes starting from arg[0] position.
+			// This returns an array containing the data that would be found in the
+			// corresponding .bin file obtained from the hex file as a byte stream.
 			Name:       "read_at",
 			ArgTypes:   []object.ObjectType{object.IntegerObj, object.IntegerObj},
 			MethodFunc: hexBuiltinReadAt,
 		},
 
 		"write_at": &object.Method{
+			// Builtin: hex.write_at(int, array) -> no return
+			// Attempts to write the contents of the arg[1] byte array to the  arg[0]
+			// position. This mutates the hex file object but not the copy on disk.
+			// Call the save() function to make the changes persistent.
 			Name:       "write_at",
 			ArgTypes:   []object.ObjectType{object.IntegerObj, object.ArrayObj},
 			MethodFunc: hexBuiltinWriteAt,
 		},
 
 		"binary_size": &object.Method{
+			// Builtin: hex.binary_size(int) -> int
+			// Returns the size of the file as the actual number of bytes contained in the data
+			// section of the data records found within the hex file.
 			Name:       "binary_size",
 			ArgTypes:   []object.ObjectType{},
 			MethodFunc: hexBuiltinBinarySize,
@@ -207,24 +247,35 @@ func init() {
 	}
 
 	builtinMethods[object.ElfObj] = MethodMapping{
+		// Builtin: elf.has_section(string) -> bool
+		// Returns whether the elf file contains a section with the passed name or not.
 		"has_section": &object.Method{
 			Name:       "has_section",
 			ArgTypes:   []object.ObjectType{object.StringObj},
 			MethodFunc: elfBuiltinHasSection,
 		},
 
+		// Builtin: elf.sections() -> array
+		// Returns an array containing the section header names as strings.
 		"sections": &object.Method{
 			Name:       "sections",
 			ArgTypes:   []object.ObjectType{},
 			MethodFunc: elfBuiltinSections,
 		},
 
+		// Builtin: elf.read_section(string) -> array
+		// Attempts to read the contents of the specified section, if it exists, and
+		// returns it as a byte array.
 		"read_section": &object.Method{
 			Name:       "read_section",
 			ArgTypes:   []object.ObjectType{object.StringObj},
 			MethodFunc: elfBuiltinReadSection,
 		},
 
+		// Builtin: elf.read_section(string, array) -> no return
+		// Attempts to write the contents of the arg[1] byte array to the  arg[0]
+		// section. This mutates the elf file object but not the copy on disk.
+		// Call the save() function to make the changes persistent.
 		"write_section": &object.Method{
 			Name:       "write_section",
 			ArgTypes:   []object.ObjectType{object.StringObj, object.AnyObj, object.IntegerObj},
@@ -233,6 +284,10 @@ func init() {
 	}
 
 	builtinMethods[object.BytesObj] = MethodMapping{
+		// Builtin: bytes.read_at(int, int) -> array
+		// Attempts to read arg[1] number of bytes starting from arg[0] position.
+		// This returns an array containing the data that would be found in the
+		// corresponding .bin file obtained from the bytes file as a byte stream.
 		"read_at": &object.Method{
 			Name:       "read_at",
 			ArgTypes:   []object.ObjectType{object.IntegerObj, object.IntegerObj},
@@ -240,6 +295,10 @@ func init() {
 		},
 
 		"write_at": &object.Method{
+			// Builtin: bytes.write_at(int, array) -> no return
+			// Attempts to write the contents of the arg[1] byte array to the  arg[0]
+			// position. This mutates the bytes file object but not the copy on disk.
+			// Call the save() function to make the changes persistent.
 			Name:       "write_at",
 			ArgTypes:   []object.ObjectType{object.IntegerObj, object.ArrayObj},
 			MethodFunc: bytesBuiltinWriteAt,
@@ -780,8 +839,6 @@ func getBoolReference(input bool) *object.Boolean {
 }
 
 func isTruthy(obj object.Object) bool {
-	// TODO add support for collections
-	// TODO empty => false, non-empty => true
 	switch obj {
 	case NULL:
 		return false
