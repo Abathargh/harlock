@@ -4,15 +4,7 @@ import "github.com/Abathargh/harlock/internal/object"
 
 func elfBuiltinHasSection(this object.Object, args ...object.Object) object.Object {
 	elfThis := this.(*object.ElfFile)
-	if len(args) != 1 {
-		return newError("type error: has_section requires one argument (the section name)")
-	}
-
-	section, isString := args[0].(*object.String)
-	if !isString {
-		return newError("type error: the section name must be a string")
-	}
-
+	section := args[0].(*object.String)
 	if elfThis.File.HasSection(section.Value) {
 		return TRUE
 	}
@@ -21,10 +13,6 @@ func elfBuiltinHasSection(this object.Object, args ...object.Object) object.Obje
 
 func elfBuiltinSections(this object.Object, args ...object.Object) object.Object {
 	elfThis := this.(*object.ElfFile)
-	if len(args) != 0 {
-		return newError("type error: has_section does not require any argument")
-	}
-
 	sections := elfThis.File.Sections()
 	retVal := &object.Array{Elements: make([]object.Object, len(sections))}
 	for idx, section := range sections {
@@ -35,23 +23,11 @@ func elfBuiltinSections(this object.Object, args ...object.Object) object.Object
 
 func elfBuiltinWriteSection(this object.Object, args ...object.Object) object.Object {
 	elfThis := this.(*object.ElfFile)
-	if len(args) != 3 {
-		return newError("type error: write_section requires three arguments " +
-			"(the section name, the data to write, the offset into the section)")
-	}
+	section := args[0].(*object.String)
+	data := args[1].(*object.Array)
 
-	section, isString := args[0].(*object.String)
-	if !isString {
-		return newError("type error: the section name must be a string")
-	}
-
-	data, isArray := args[1].(*object.Array)
-	if !isArray {
-		return newError("type error: data must be an array")
-	}
-
-	offset, isInt := args[2].(*object.Integer)
-	if !isInt || offset.Value < 0 {
+	offset := args[2].(*object.Integer)
+	if offset.Value < 0 {
 		return newError("type error: the offset must be a positive integer")
 	}
 
@@ -75,15 +51,7 @@ func elfBuiltinWriteSection(this object.Object, args ...object.Object) object.Ob
 
 func elfBuiltinReadSection(this object.Object, args ...object.Object) object.Object {
 	elfThis := this.(*object.ElfFile)
-	if len(args) != 1 {
-		return newError("type error: read_section requires one argument " +
-			"(the section name)")
-	}
-
-	section, isString := args[0].(*object.String)
-	if !isString {
-		return newError("type error: the section name must be a string")
-	}
+	section := args[0].(*object.String)
 
 	readData, err := elfThis.File.ReadSection(section.Value)
 	if err != nil {

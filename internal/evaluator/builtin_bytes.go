@@ -6,7 +6,7 @@ func bytesBuiltinWriteAt(this object.Object, args ...object.Object) object.Objec
 	bytesThis := this.(*object.BytesFile)
 	if len(args) != 2 {
 		return newError("type error: write_at requires two arguments " +
-			"(the data array and the position)")
+			"(the position and the data)")
 	}
 
 	position, isInt := args[0].(*object.Integer)

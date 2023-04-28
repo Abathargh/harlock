@@ -18,6 +18,7 @@ const (
 )
 
 func checkType(expected, actual object.ObjectType) bool {
+
 	okTypes := strings.Split(string(expected), "/")
 	for _, okType := range okTypes {
 		if object.ObjectType(okType) == actual {
@@ -27,7 +28,10 @@ func checkType(expected, actual object.ObjectType) bool {
 	return false
 }
 
-func typeArgsError(name string, reqTypes []object.ObjectType, args []object.Object) *object.Error {
+func typeArgsError(builtin object.CallableBuiltin, args []object.Object) *object.Error {
+	name := builtin.GetBuiltinName()
+	reqTypes := builtin.GetBuiltinArgTypes()
+
 	argValues := make([]string, len(args))
 	for idx, obj := range args {
 		argValues[idx] = strings.ReplaceAll(obj.Inspect(), "\n", " ")
@@ -56,22 +60,39 @@ func execBuiltin(builtin object.CallableBuiltin, args ...object.Object) object.O
 	argTypes := builtin.GetBuiltinArgTypes()
 
 	argcExpected := len(argTypes)
+	for _, expected := range argTypes {
+		if expected == object.AnyOptional {
+			argcExpected--
+		}
+	}
+
 	argc := len(args)
+	var argsToValidate []object.Object
+
+	_, isMethod := builtin.(*object.Method)
+	if isMethod {
+		argc -= 1
+		argsToValidate = args[1:] // do not validate 'self'/'this'
+	} else {
+		argsToValidate = args
+	}
 
 	if argcExpected == 1 && argTypes[0] == object.AnyVarargs {
 		goto exec
 	}
 
+	// TODO this varies for AnyOptional
 	if argcExpected != argc {
-		return typeArgsError(name, argTypes, args)
+		return typeArgsError(builtin, argsToValidate)
 	}
 
 	for idx, argExpected := range argTypes {
-		if argExpected == object.AnyObj {
+		if argExpected == object.AnyObj || argExpected == object.AnyOptional {
 			continue
 		}
-		if !checkType(argExpected, args[idx].Type()) {
-			return typeArgsError(name, argTypes, args)
+
+		if !checkType(argExpected, argsToValidate[idx].Type()) {
+			return typeArgsError(builtin, argsToValidate)
 		}
 	}
 

@@ -15,8 +15,10 @@ import (
 type ObjectType string
 
 const (
-	AnyObj         = "Any"
-	AnyVarargs     = "Any Varargs"
+	AnyObj      = "Any"
+	AnyVarargs  = "Any Varargs"
+	AnyOptional = "Any optional"
+
 	NullObj        = "Null"
 	TypeObj        = "Type"
 	SetObj         = "Set"

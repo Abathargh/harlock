@@ -9,7 +9,7 @@ import (
 	"github.com/Abathargh/harlock/internal/object"
 )
 
-type MethodMapping map[string]object.MethodFunction
+type MethodMapping map[string]*object.Method
 
 const noLineInfo = -1
 
@@ -115,41 +115,135 @@ func init() {
 
 	builtinMethods = make(map[object.ObjectType]MethodMapping)
 	builtinMethods[object.ArrayObj] = MethodMapping{
-		"map":    arrayBuiltinMap,
-		"pop":    arrayBuiltinPop,
-		"push":   arrayBuiltinPush,
-		"slice":  arrayBuiltinSlice,
-		"reduce": arrayBuiltinReduce,
+		"map": &object.Method{
+			Name:       "map",
+			ArgTypes:   []object.ObjectType{object.FunctionObj},
+			MethodFunc: arrayBuiltinMap,
+		},
+
+		"pop": &object.Method{
+			Name:       "pop",
+			ArgTypes:   []object.ObjectType{},
+			MethodFunc: arrayBuiltinPop,
+		},
+
+		"push": &object.Method{
+			Name:       "push",
+			ArgTypes:   []object.ObjectType{object.AnyObj},
+			MethodFunc: arrayBuiltinPush,
+		},
+
+		"slice": &object.Method{
+			Name:       "slice",
+			ArgTypes:   []object.ObjectType{object.IntegerObj, object.IntegerObj},
+			MethodFunc: arrayBuiltinSlice,
+		},
+
+		"reduce": &object.Method{
+			Name:       "reduce",
+			ArgTypes:   []object.ObjectType{object.FunctionObj, object.AnyOptional},
+			MethodFunc: arrayBuiltinReduce,
+		},
 	}
 
 	builtinMethods[object.MapObj] = MethodMapping{
-		"set": mapBuiltinSet,
-		"pop": mapBuiltinPop,
+		"set": &object.Method{
+			Name:       "set",
+			ArgTypes:   []object.ObjectType{object.AnyObj, object.AnyObj},
+			MethodFunc: mapBuiltinSet,
+		},
+
+		"pop": &object.Method{
+			Name:       "pop",
+			ArgTypes:   []object.ObjectType{object.AnyObj},
+			MethodFunc: mapBuiltinPop,
+		},
 	}
 
 	builtinMethods[object.SetObj] = MethodMapping{
-		"add":    setBuiltinAdd,
-		"remove": setBuiltinRemove,
+		"add": &object.Method{
+			Name:       "add",
+			ArgTypes:   []object.ObjectType{object.AnyObj},
+			MethodFunc: setBuiltinAdd,
+		},
+
+		"remove": &object.Method{
+			Name:       "remove",
+			ArgTypes:   []object.ObjectType{object.AnyObj},
+			MethodFunc: setBuiltinRemove,
+		},
 	}
 
 	builtinMethods[object.HexObj] = MethodMapping{
-		"record":      hexBuiltinRecord,
-		"size":        hexBuiltinSize,
-		"read_at":     hexBuiltinReadAt,
-		"write_at":    hexBuiltinWriteAt,
-		"binary_size": hexBuiltinBinarySize,
+		"record": &object.Method{
+			Name:       "record",
+			ArgTypes:   []object.ObjectType{object.IntegerObj},
+			MethodFunc: hexBuiltinRecord,
+		},
+
+		"size": &object.Method{
+			Name:       "size",
+			ArgTypes:   []object.ObjectType{},
+			MethodFunc: hexBuiltinSize,
+		},
+
+		"read_at": &object.Method{
+			Name:       "read_at",
+			ArgTypes:   []object.ObjectType{object.IntegerObj, object.IntegerObj},
+			MethodFunc: hexBuiltinReadAt,
+		},
+
+		"write_at": &object.Method{
+			Name:       "write_at",
+			ArgTypes:   []object.ObjectType{object.IntegerObj, object.ArrayObj},
+			MethodFunc: hexBuiltinWriteAt,
+		},
+
+		"binary_size": &object.Method{
+			Name:       "binary_size",
+			ArgTypes:   []object.ObjectType{},
+			MethodFunc: hexBuiltinBinarySize,
+		},
 	}
 
 	builtinMethods[object.ElfObj] = MethodMapping{
-		"has_section":   elfBuiltinHasSection,
-		"sections":      elfBuiltinSections,
-		"write_section": elfBuiltinWriteSection,
-		"read_section":  elfBuiltinReadSection,
+		"has_section": &object.Method{
+			Name:       "has_section",
+			ArgTypes:   []object.ObjectType{object.StringObj},
+			MethodFunc: elfBuiltinHasSection,
+		},
+
+		"sections": &object.Method{
+			Name:       "sections",
+			ArgTypes:   []object.ObjectType{},
+			MethodFunc: elfBuiltinSections,
+		},
+
+		"read_section": &object.Method{
+			Name:       "read_section",
+			ArgTypes:   []object.ObjectType{object.StringObj},
+			MethodFunc: elfBuiltinReadSection,
+		},
+
+		"write_section": &object.Method{
+			Name:       "write_section",
+			ArgTypes:   []object.ObjectType{object.StringObj, object.AnyObj, object.IntegerObj},
+			MethodFunc: elfBuiltinWriteSection,
+		},
 	}
 
 	builtinMethods[object.BytesObj] = MethodMapping{
-		"read_at":  bytesBuiltinReadAt,
-		"write_at": bytesBuiltinWriteAt,
+		"read_at": &object.Method{
+			Name:       "read_at",
+			ArgTypes:   []object.ObjectType{object.IntegerObj, object.IntegerObj},
+			MethodFunc: bytesBuiltinReadAt,
+		},
+
+		"write_at": &object.Method{
+			Name:       "write_at",
+			ArgTypes:   []object.ObjectType{object.IntegerObj, object.ArrayObj},
+			MethodFunc: bytesBuiltinWriteAt,
+		},
 	}
 }
 
@@ -637,8 +731,7 @@ func evalMethodExpression(methodExpression *ast.MethodCallExpression, env *objec
 	expArgs[0] = evaluatedCaller
 	copy(expArgs[1:], args)
 
-	methodObj := &object.Method{MethodFunc: method}
-	return callFunction(methodName, methodObj, expArgs, methodExpression.LineNumber)
+	return callFunction(methodName, method, expArgs, methodExpression.LineNumber)
 }
 
 func callFunction(funcName string, funcObj object.Object, args []object.Object, line int) object.Object {
@@ -652,12 +745,9 @@ func callFunction(funcName string, funcObj object.Object, args []object.Object, 
 		nameOnly := funcName[:strings.Index(funcName, "(")]
 		return newError("function %q was called with a wrong number of args on line %d", nameOnly, line)
 	case *object.Builtin:
-		return execBuiltin(function, args...) // this is an actual go function call
+		return execBuiltin(function, args...)
 	case *object.Method:
-		if len(args) == 1 {
-			return function.MethodFunc(args[0])
-		}
-		return function.MethodFunc(args[0], args[1:]...)
+		return execBuiltin(function, args...)
 	default:
 		return newError("'%s' identifier is not a function on line %d", funcObj.Type(), line)
 	}
