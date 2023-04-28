@@ -59,10 +59,11 @@ func execBuiltin(builtin object.CallableBuiltin, args ...object.Object) object.O
 	name := builtin.GetBuiltinName()
 	argTypes := builtin.GetBuiltinArgTypes()
 
+	argcExpectedCount := 0
 	argcExpected := len(argTypes)
 	for _, expected := range argTypes {
 		if expected == object.AnyOptional {
-			argcExpected--
+			argcExpectedCount++
 		}
 	}
 
@@ -81,9 +82,15 @@ func execBuiltin(builtin object.CallableBuiltin, args ...object.Object) object.O
 		goto exec
 	}
 
-	// TODO this varies for AnyOptional
-	if argcExpected != argc {
-		return typeArgsError(builtin, argsToValidate)
+	switch argcExpectedCount {
+	case 0:
+		if argcExpected != argc {
+			return typeArgsError(builtin, argsToValidate)
+		}
+	default:
+		if argc < argcExpected-argcExpectedCount || argc > argcExpected {
+			return typeArgsError(builtin, argsToValidate)
+		}
 	}
 
 	for idx, argExpected := range argTypes {

@@ -2,7 +2,7 @@ package evaluator
 
 import "github.com/Abathargh/harlock/internal/object"
 
-func arrayBuiltinPop(this object.Object, args ...object.Object) object.Object {
+func arrayBuiltinPop(this object.Object, _ ...object.Object) object.Object {
 	arrayThis := this.(*object.Array)
 
 	newArrLen := len(arrayThis.Elements) - 1

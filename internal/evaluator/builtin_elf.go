@@ -11,7 +11,7 @@ func elfBuiltinHasSection(this object.Object, args ...object.Object) object.Obje
 	return FALSE
 }
 
-func elfBuiltinSections(this object.Object, args ...object.Object) object.Object {
+func elfBuiltinSections(this object.Object, _ ...object.Object) object.Object {
 	elfThis := this.(*object.ElfFile)
 	sections := elfThis.File.Sections()
 	retVal := &object.Array{Elements: make([]object.Object, len(sections))}
