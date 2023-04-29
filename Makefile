@@ -18,6 +18,10 @@ deb :
 standalone :
 	bash ./scripts/build-standalone.sh
 
+clean :
+	rm -rf dist harlock
+
+
 .PHONY : deb
 .PHONY : dist
 .PHONY : standalone
@@ -25,3 +29,4 @@ standalone :
 .PHONY : build
 .PHONY : build-interrepl
 .PHONY : install
+.PHONY : clean
