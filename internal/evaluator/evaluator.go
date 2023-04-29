@@ -113,6 +113,15 @@ func init() {
 		Function: builtinContains,
 	}
 
+	// Builtin: hash(array, string) -> array
+	// Returns an array containing the computed hash of the passed
+	// array, using the specified algorithm.
+	builtins["hash"] = &object.Builtin{
+		Name:     "hash",
+		ArgTypes: []object.ObjectType{object.ArrayObj, object.StringObj},
+		Function: builtinHash,
+	}
+
 	builtinMethods = make(map[object.ObjectType]MethodMapping)
 	builtinMethods[object.ArrayObj] = MethodMapping{
 		// Builtin: array.map(function) -> array

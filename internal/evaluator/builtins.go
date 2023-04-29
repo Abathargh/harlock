@@ -2,6 +2,9 @@ package evaluator
 
 import (
 	"bufio"
+	"crypto/md5"
+	"crypto/sha1"
+	"crypto/sha256"
 	"fmt"
 	"github.com/Abathargh/harlock/internal/evaluator/bytes"
 	harlockElf "github.com/Abathargh/harlock/internal/evaluator/elf"
@@ -18,7 +21,6 @@ const (
 )
 
 func checkType(expected, actual object.ObjectType) bool {
-
 	okTypes := strings.Split(string(expected), "/")
 	for _, okType := range okTypes {
 		if object.ObjectType(okType) == actual {
@@ -308,4 +310,44 @@ func builtinAsBytes(args ...object.Object) object.Object {
 	default:
 		return newError("must pass a file (hex, elf, bytes)")
 	}
+}
+
+func builtinHash(args ...object.Object) object.Object {
+	data := args[0].(*object.Array)
+	hashFunc := args[1].(*object.String)
+
+	// TODO: right now this iterates everything twice
+	byteData := make([]byte, len(data.Elements))
+	for idx, obj := range data.Elements {
+		intByte, isInt := obj.(*object.Integer)
+		if !isInt || (intByte.Value < 0 || intByte.Value > 255) {
+			return newError("expecting an array of bytes (0 <= n <= 255")
+		}
+		byteData[idx] = byte(intByte.Value)
+	}
+
+	switch hashFunc.Value {
+	case "sha1":
+		sha1Sum := sha1.Sum(byteData)
+		return bytestoIntarray(sha1Sum[:])
+	case "sha256":
+		sha256um := sha256.Sum256(byteData)
+		return bytestoIntarray(sha256um[:])
+	case "md5":
+		md5Sum := md5.Sum(byteData)
+		return bytestoIntarray(md5Sum[:])
+	default:
+		return newError("unsupported hash function %s", hashFunc.Value)
+	}
+}
+
+func bytestoIntarray(data []byte) *object.Array {
+	arr := &object.Array{
+		Elements: make([]object.Object, len(data)),
+	}
+
+	for idx, elem := range data {
+		arr.Elements[idx] = &object.Integer{Value: int64(elem)}
+	}
+	return arr
 }
