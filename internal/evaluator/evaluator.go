@@ -346,7 +346,11 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return &object.ReturnValue{Value: NULL}
 	case *ast.VarStatement:
 		letValue := Eval(currentNode.Value, env)
-		if letValue != nil && letValue.Type() == object.ReturnValueObj {
+		if letValue == nil || letValue == NULL {
+			return NULL
+		}
+
+		if letValue.Type() == object.ReturnValueObj {
 			return unwrapReturnValue(letValue)
 		}
 		env.Set(currentNode.Name.Value, letValue)

@@ -17,13 +17,13 @@ func hexBuiltinRecord(this object.Object, args ...object.Object) object.Object {
 	return &object.String{Value: readData.AsString()}
 }
 
-func hexBuiltinSize(this object.Object, args ...object.Object) object.Object {
+func hexBuiltinSize(this object.Object, _ ...object.Object) object.Object {
 	hexThis := this.(*object.HexFile)
 	size := hexThis.File.Size()
 	return &object.Integer{Value: int64(size)}
 }
 
-func hexBuiltinBinarySize(this object.Object, args ...object.Object) object.Object {
+func hexBuiltinBinarySize(this object.Object, _ ...object.Object) object.Object {
 	hexThis := this.(*object.HexFile)
 	size := hexThis.File.BinarySize()
 	return &object.Integer{Value: int64(size)}
