@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"
+	hex2 "encoding/hex"
 	"fmt"
 	"github.com/Abathargh/harlock/internal/evaluator/bytes"
 	harlockElf "github.com/Abathargh/harlock/internal/evaluator/elf"
@@ -53,6 +54,9 @@ func typeArgsError(builtin object.CallableBuiltin, args []object.Object) *object
 
 	reqStr := strings.Join(reqStrList, ", ")
 
+	if len(argsTypeStr) == 0 {
+		argsTypeStr = "no args"
+	}
 	errorStr := fmt.Sprintf(typeErrTemplate, name, len(reqTypes), reqStr, name, argsValueStr, argsTypeStr)
 	return &object.Error{Message: errorStr}
 }
@@ -125,24 +129,33 @@ func builtinHex(args ...object.Object) object.Object {
 			value = -value
 		}
 		return &object.String{Value: fmt.Sprintf("%s0x%02x", sign, value)}
-	case *object.String:
-		strVal := argObj.Value
-		strLen := len(strVal)
-		if strLen%2 != 0 || strLen == 0 {
-			return newError("type error: wrong size for hex string literal")
+	case *object.Array:
+		byteData := make([]byte, len(argObj.Elements))
+		if err := intArrayToBytes(argObj, byteData); err != nil {
+			return err
 		}
-		arr := make([]object.Object, strLen/2, strLen/2)
-		for idx := 0; idx < strLen; idx += 2 {
-			digit, err := strconv.ParseInt(strVal[idx:idx+2], 16, 64)
-			if err != nil {
-				return newError("invalid hex digit %s", strVal[idx:idx+2])
-			}
-			arr[idx/2] = &object.Integer{Value: digit}
-		}
-		return &object.Array{Elements: arr}
+		return &object.String{Value: hex2.EncodeToString(byteData)}
 	default:
 		return newError("hex requires one integer/string as argument")
 	}
+}
+
+func builtinFromhex(args ...object.Object) object.Object {
+	hexString := args[0].(*object.String)
+	strVal := hexString.Value
+	strLen := len(strVal)
+	if strLen%2 != 0 || strLen == 0 {
+		return newError("type error: wrong size for hex string literal")
+	}
+	arr := make([]object.Object, strLen/2, strLen/2)
+	for idx := 0; idx < strLen; idx += 2 {
+		digit, err := strconv.ParseInt(strVal[idx:idx+2], 16, 64)
+		if err != nil {
+			return newError("invalid hex digit %s", strVal[idx:idx+2])
+		}
+		arr[idx/2] = &object.Integer{Value: digit}
+	}
+	return &object.Array{Elements: arr}
 }
 
 func builtinLen(args ...object.Object) object.Object {
@@ -318,12 +331,8 @@ func builtinHash(args ...object.Object) object.Object {
 
 	// TODO: right now this iterates everything twice
 	byteData := make([]byte, len(data.Elements))
-	for idx, obj := range data.Elements {
-		intByte, isInt := obj.(*object.Integer)
-		if !isInt || (intByte.Value < 0 || intByte.Value > 255) {
-			return newError("expecting an array of bytes (0 <= n <= 255")
-		}
-		byteData[idx] = byte(intByte.Value)
+	if err := intArrayToBytes(data, byteData); err != nil {
+		return err
 	}
 
 	switch hashFunc.Value {
@@ -339,6 +348,17 @@ func builtinHash(args ...object.Object) object.Object {
 	default:
 		return newError("unsupported hash function %s", hashFunc.Value)
 	}
+}
+
+func intArrayToBytes(src *object.Array, dst []byte) *object.Error {
+	for idx, obj := range src.Elements {
+		intByte, isInt := obj.(*object.Integer)
+		if !isInt || (intByte.Value < 0 || intByte.Value > 255) {
+			return newError("expecting an array of bytes (0 <= n <= 255")
+		}
+		dst[idx] = byte(intByte.Value)
+	}
+	return nil
 }
 
 func bytestoIntarray(data []byte) *object.Array {

@@ -25,15 +25,22 @@ var (
 func init() {
 	builtins = make(map[string]*object.Builtin)
 
-	// Builtin: hex(int|string) -> string|array
-	// Converts an integer to a hex-string or a hex-string
-	// with no trailing '0x' to an array of bytes
+	// Builtin: hex(int|array) -> string
+	// Converts an integer or a byte array to a hex-string.
 	builtins["hex"] = &object.Builtin{
 		Name: "hex",
 		ArgTypes: []object.ObjectType{
-			object.OrType(object.IntegerObj, object.StringObj),
+			object.OrType(object.IntegerObj, object.ArrayObj),
 		},
 		Function: builtinHex,
+	}
+
+	// Builtin: from_hex(string) -> array
+	// Converts a hex-string with no trailing '0x' to an array of bytes
+	builtins["from_hex"] = &object.Builtin{
+		Name:     "from_hex",
+		ArgTypes: []object.ObjectType{object.StringObj},
+		Function: builtinFromhex,
 	}
 
 	// Builtin: len(string|array|map|set) -> int

@@ -3,9 +3,16 @@ package evaluator
 import (
 	"bufio"
 	"bytes"
+	"crypto/md5"
+	"crypto/sha1"
+	"crypto/sha256"
+	"fmt"
+	"math/rand"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Abathargh/harlock/internal/lexer"
 	"github.com/Abathargh/harlock/internal/object"
@@ -310,13 +317,19 @@ func TestBuiltinFunctions(t *testing.T) {
 		expected any
 	}{
 		{`hex(255)`, "0xff"},
-		{`hex("ffab21")`, object.ArrayObj},
+		{`hex([0x01, 0x04, 0xfa, 0xcb])`, "0x0104facb"},
+		{`hex([0x01, 0x04, 0xfa, 1000])`, object.ErrorObj},
+		{`hex("error")`, object.ErrorObj},
+		{`from_hex("ffab21")`, object.ArrayObj},
+		{`from_hex(0)`, object.ErrorObj},
 		{`len("")`, 0},
 		{`len("ciao")`, 4},
 		{`len([1, 2, 3])`, 3},
 		{`len({1: 3, 6: 12, "ciao": "test"})`, 3},
 		{`len(set(1, 4, 7, 11))`, 4},
+		{`len(0)`, object.ErrorObj},
 		{`set("ciao", 1, 2, 3)`, object.SetObj},
+		{`set(set(1))`, object.ErrorObj},
 		{`type("ciao")`, object.StringObj},
 		{`type(1)`, object.IntegerObj},
 		{`type(1/0)`, object.ErrorObj},
@@ -324,13 +337,16 @@ func TestBuiltinFunctions(t *testing.T) {
 		{`type([])`, object.ArrayObj},
 		{`type({})`, object.MapObj},
 		{`type(type([]))`, object.TypeObj},
+		{`type(a)`, object.ErrorObj},
 		{`print("ciao")`, nil},
+		{`print(a)`, object.ErrorObj},
 		{`contains([1, 2, 3], 1)`, true},
 		{`contains([1, 2, 3], 4)`, false},
 		{`contains({1: 2, 3: 4}, 3)`, true},
 		{`contains({1: 2, 3: 4}, 5)`, false},
 		{`contains(set(5, 8, 22), 22)`, true},
 		{`contains(set(5, 8, 22), 42)`, false},
+		{`contains(0, 42)`, object.ErrorObj},
 	}
 
 	for _, testCase := range tests {
@@ -343,6 +359,61 @@ func TestBuiltinFunctions(t *testing.T) {
 		case object.ObjectType:
 			if evalBuiltin.Type() != expected {
 				t.Errorf("expected object of type %s, got %s", expected, evalBuiltin.Type())
+			}
+		}
+	}
+}
+
+func TestHashBuiltinFunction(t *testing.T) {
+	const arraySize = 30
+	const testSize = 100
+
+	testAlgos := []string{"sha1", "sha256", "md5"}
+
+	randSource := rand.NewSource(time.Now().UnixNano())
+	randGen := rand.New(randSource)
+	testArray := make([]byte, arraySize)
+	strArray := make([]string, arraySize)
+
+	for i := 0; i < testSize; i++ {
+		for j := 0; j < arraySize; j++ {
+			r := randGen.Intn(256)
+			testArray[j] = byte(r)
+			strArray[j] = strconv.Itoa(r)
+		}
+
+		strRepr := fmt.Sprintf("[%s]", strings.Join(strArray, ", "))
+
+		for _, alg := range testAlgos {
+
+			var result []byte
+			switch alg {
+			case "sha1":
+				resultSha1 := sha1.Sum(testArray)
+				result = resultSha1[:]
+			case "sha256":
+				resultSha256 := sha256.Sum256(testArray)
+				result = resultSha256[:]
+			case "md5":
+				resultMd5 := md5.Sum(testArray)
+				result = resultMd5[:]
+			}
+
+			prog := fmt.Sprintf("hash(%s, \"%s\")\n", strRepr, alg)
+			res, isByteArray := testEval(prog).(*object.Array)
+			if !isByteArray {
+				t.Errorf("expected byte array, got %s (%v)", res.Type(), prog)
+				return
+			}
+
+			byteResult := make([]byte, len(res.Elements))
+			err := intArrayToBytes(res, byteResult)
+			if err != nil {
+				t.Errorf("expected byte array, got %s", res.Type())
+			}
+
+			if !bytes.Equal(result, byteResult) {
+				t.Errorf("Got a discrepancy in calulating '%s' hash", alg)
 			}
 		}
 	}
@@ -372,20 +443,28 @@ func TestArrayIndexExpressions(t *testing.T) {
 		expected any
 	}{
 		{"[1][0]", 1},
+		{"[\"ciao\"][0]", object.StringObj},
 		{"[1, 2, 4][1 + 1]", 4},
-		{`[0xfe, "ciao", 12][2]`, 12},
+		{"[1, 2, \"test\"][1 + 1]", object.StringObj},
+		{"[0xfe, \"ciao\", 12][2]", 12},
 		{"var arr = [2, 5, 1]\narr[1]", 5},
 		{"var add = fun(x,y){ ret x+y }\n[2, add(3, 4), 3][1]", 7},
-		// TODO Errors
+		{"[1][-1]", object.ErrorObj},
+		{"[1][2]", object.ErrorObj},
+		{"var arr = [2, 5, 1]\narr[-1]", object.ErrorObj},
+		{"var arr = [2, 5, 1]\narr[10]", object.ErrorObj},
 	}
 
 	for _, testCase := range tests {
 		arrayIndexExpr := testEval(testCase.input)
-		expectedIntValue, isInt := testCase.expected.(int)
-		if isInt {
-			testIntegerObject(t, arrayIndexExpr, int64(expectedIntValue))
-		} else {
-			testNullObject(t, arrayIndexExpr)
+
+		switch expected := testCase.expected.(type) {
+		case object.ObjectType:
+			if arrayIndexExpr.Type() != expected {
+				t.Errorf("expected object of type %s, got %s", expected, arrayIndexExpr.Type())
+			}
+		case int:
+			testIntegerObject(t, arrayIndexExpr, int64(expected))
 		}
 	}
 }
@@ -685,16 +764,20 @@ func TestMapIndexExpressions(t *testing.T) {
 		{`{"test": 2}["test"]`, 2},
 		{`{10: 3}[10]`, 3},
 		{`{true: 4}[true]`, 4},
-		// TODO Errors
+		{`{true: "test"}[true]`, object.StringObj},
+		{`{true: "test"}["no_key"]`, object.ErrorObj},
 	}
 
 	for _, testCase := range tests {
 		arrayIndexExpr := testEval(testCase.input)
-		expectedIntValue, isInt := testCase.expected.(int)
-		if isInt {
-			testIntegerObject(t, arrayIndexExpr, int64(expectedIntValue))
-		} else {
-			testNullObject(t, arrayIndexExpr)
+		switch expected := testCase.expected.(type) {
+		case object.ObjectType:
+			if arrayIndexExpr.Type() != expected {
+				t.Errorf("expected object of type %s, got %s", expected, arrayIndexExpr.Type())
+			}
+		case int:
+			testIntegerObject(t, arrayIndexExpr, int64(expected))
+
 		}
 	}
 }
@@ -769,7 +852,7 @@ h.read_at(0x1000*16 + 0xC200, 2)`,
 		},
 		{
 			`var h = open("test.hex", "hex")
-h.write_at(0x2000*16, hex("DEADBEEF"))
+h.write_at(0x2000*16, from_hex("DEADBEEF"))
 h.read_at(0x2000*16, 4)`,
 			[]int64{0xDE, 0xAD, 0xBE, 0xEF},
 		},
@@ -955,7 +1038,7 @@ func testEval(input string) object.Object {
 func testIntegerObject(t *testing.T, obj object.Object, expected int64) bool {
 	integerObj, ok := obj.(*object.Integer)
 	if !ok {
-		t.Errorf("expected object to be an Integer, got %T", obj)
+		t.Errorf("expected object to be an Integer (%d), got %T", expected, obj)
 		return false
 	}
 
