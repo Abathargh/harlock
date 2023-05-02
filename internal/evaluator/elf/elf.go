@@ -81,3 +81,21 @@ func (ef *File) ReadSection(name string) ([]byte, error) {
 	copy(contents, ef.bytes[start:start+section.Size])
 	return contents, nil
 }
+
+// SectionAddress returns the address of the section, if it exists
+func (ef *File) SectionAddress(name string) (uint64, error) {
+	section := ef.file.Section(name)
+	if section == nil {
+		return 0, NoSuchSectionErr
+	}
+	return section.Addr, nil
+}
+
+// SectionSize returns the size of the section, if it exists
+func (ef *File) SectionSize(name string) (uint64, error) {
+	section := ef.file.Section(name)
+	if section == nil {
+		return 0, NoSuchSectionErr
+	}
+	return section.Size, nil
+}

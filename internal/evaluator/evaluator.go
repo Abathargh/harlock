@@ -279,6 +279,22 @@ func init() {
 			MethodFunc: elfBuiltinSections,
 		},
 
+		// Builtin: elf.section_address(string) -> int
+		// Returns the address of the specified section, if it exists.
+		"section_address": &object.Method{
+			Name:       "section_address",
+			ArgTypes:   []object.ObjectType{object.StringObj},
+			MethodFunc: elfBuiltinSectionAddress,
+		},
+
+		// Builtin: elf.section_size(string) -> int
+		// Returns the size of the specified section, if it exists.
+		"section_size": &object.Method{
+			Name:       "section_address",
+			ArgTypes:   []object.ObjectType{object.StringObj},
+			MethodFunc: elfBuiltinSectionSize,
+		},
+
 		// Builtin: elf.read_section(string) -> array
 		// Attempts to read the contents of the specified section, if it exists, and
 		// returns it as a byte array.
@@ -289,8 +305,8 @@ func init() {
 		},
 
 		// Builtin: elf.read_section(string, array) -> no return
-		// Attempts to write the contents of the arg[1] byte array to the  arg[0]
-		// section. This mutates the elf file object but not the copy on disk.
+		// Attempts to write the contents of the arg[1] byte array to the arg[0]
+		// section with arg[2] offset. This mutates the elf file object but not the copy on disk.
 		// Call the save() function to make the changes persistent.
 		"write_section": &object.Method{
 			Name:       "write_section",
