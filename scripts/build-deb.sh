@@ -2,7 +2,8 @@
 
 version=$(git describe --tags)
 vers_nov=${version#*v}
-splitted=(${vers_nov//./ })
+
+readarray -d "." -t splitted < <(printf "%s" "$vers_nov")
 vers_majmin="${splitted[0]}"."${splitted[1]}"
 vers_minor="${splitted[2]}"
 
