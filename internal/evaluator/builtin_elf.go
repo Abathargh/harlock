@@ -1,6 +1,8 @@
 package evaluator
 
-import "github.com/Abathargh/harlock/internal/object"
+import (
+	"github.com/Abathargh/harlock/internal/object"
+)
 
 func elfBuiltinHasSection(this object.Object, args ...object.Object) object.Object {
 	elfThis := this.(*object.ElfFile)
@@ -63,5 +65,33 @@ func elfBuiltinReadSection(this object.Object, args ...object.Object) object.Obj
 	for idx, readByte := range readData {
 		retVal.Elements[idx] = &object.Integer{Value: int64(readByte)}
 	}
+	return retVal
+}
+
+func elfBuiltinSectionAddress(this object.Object, args ...object.Object) object.Object {
+	elfThis := this.(*object.ElfFile)
+	section := args[0].(*object.String)
+
+	addr, err := elfThis.File.SectionAddress(section.Value)
+	if err != nil {
+		return newError("elf error: elf.section_address(%q): %s",
+			section.Value, err)
+	}
+
+	retVal := &object.Integer{Value: int64(addr)}
+	return retVal
+}
+
+func elfBuiltinSectionSize(this object.Object, args ...object.Object) object.Object {
+	elfThis := this.(*object.ElfFile)
+	section := args[0].(*object.String)
+
+	addr, err := elfThis.File.SectionSize(section.Value)
+	if err != nil {
+		return newError("elf error: elf.section_size(%q): %s",
+			section.Value, err)
+	}
+
+	retVal := &object.Integer{Value: int64(addr)}
 	return retVal
 }
