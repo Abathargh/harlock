@@ -6,20 +6,20 @@ binaries post-processing. It is based around the ideas discussed
 in the *Writing An Interpreter In Go* book by Thorsten Ball.
 
 - [Harlock](#harlock)
-	- [Why a language?](#why-a-language)
-	- [Download](#download)
-	- [Build](#build)
-	- [Usage](#usage)
-		- [Run a script](#run-a-script)
-		- [Start the REPL](#start-the-repl)
-		- [Embed a script](#embed-a-script)
-	- [Use cases](#use-cases)
-		- [File APIs](#file-apis)
-		- [Hex file manipulation](#hex-file-manipulation)
-		- [Elf file manipulation](#elf-file-manipulation)
-		- [Generic file manipulation](#generic-file-manipulation)
-	- [Language primitives \& operations](#language-primitives--operations)
-	- [License](#license)
+  - [Why a language?](#why-a-language)
+  - [Download](#download)
+  - [Build](#build)
+  - [Usage](#usage)
+    - [Run a script](#run-a-script)
+    - [Start the REPL](#start-the-repl)
+    - [Embed a script](#embed-a-script)
+  - [Use cases](#use-cases)
+    - [File APIs](#file-apis)
+    - [Hex file manipulation](#hex-file-manipulation)
+    - [Elf file manipulation](#elf-file-manipulation)
+    - [Generic file manipulation](#generic-file-manipulation)
+  - [Language primitives \& operations](#language-primitives--operations)
+  - [License](#license)
 
 
 ## Why a language?
@@ -34,11 +34,18 @@ can then insert into your build pipeline.
 
 ## Download
 
+You can download the latest pre-built binary for your architecture/os from 
+the [harlock release page](https://github.com/Abathargh/harlock/releases).
+
+If you have installed the go toolchain, you can directly install the interpeter using the following command:
+
 ```bash
 go install github.com/Abathargh/harlock/cmd/harlock@latest
 ```
 
-## Build 
+Changing the `latest` bit with the version you desire to download, if you do not want the latest committed version.
+
+## Build
 
 **Required: Go 1.18+**
 
@@ -77,7 +84,7 @@ harlock -embed script.hlk
 
 ## Use cases
 
-Embedding metadata is supported for hex an elf formats: this language implements a thin wrapper on the ```debug/elf``` 
+Embedding metadata is supported for hex and elf formats: this language implements a thin wrapper on the ```debug/elf``` 
 go package, and an ihex parser to make it possible to write and read from and to a file with an API that gives random 
 access capabilities to the user.
 
@@ -126,6 +133,10 @@ We can then manipulate the hex file as follows:
 var h = try open("test.hex", "hex")
 print(h) // prints the contents as a string
 
+// Print information related to the hex file
+print("Number of records", h.size())
+print("Actual data contained within the data records", h.binary_size())
+
 // Read n bytes (qst param) at position m (0-th param)
 print(h.read_at(0, 16))      // prints [207, 147, 223, 147, 0, 208, 205, 183, 222, 183, 26, 130, 25, 130, 137, 129]
 
@@ -134,7 +145,7 @@ try h.write_at(0, [1, 2, 3])
 print(h.read_at(0, 16))      // prints [1, 2, 3, 147, 0, 208, 205, 183, 222, 183, 26, 130, 25, 130, 137, 129]
 
 
-try h.write_at(0, hex("deadbeef")) 
+try h.write_at(0, from_hex("deadbeef")) 
 print(h.read_at(0, 16))      // prints [222, 173, 190, 239, 0, 208, 205, 183, 222, 183, 26, 130, 25, 130, 137, 129]
 
 print(as_bytes(h))           // prints [58, 49, 48, 48, 48, 48, ... 70, 70, 13, 10]
@@ -267,7 +278,7 @@ var s = 'test string'
 s == "test string"
 s != "test strings"
 len(s) == 11
-hex("FF0102") == [255, 1, 2]
+from_hex("FF0102") == [255, 1, 2]
 
 # Arrays
 var arr = [1, 2, 3]
