@@ -159,7 +159,7 @@ func init() {
 		},
 
 		// Builtin: array.slice(int, int) -> array
-		// Returns a sub-array slicing the original array in the [args[0]:args[1)
+		// Returns a sub-array slicing the original array in the [args[0]:args[1])
 		// interval. This returns a new array and copies each element in the new
 		// array. Lists/Maps/Sets/Files are copied as references.
 		"slice": &object.Method{
@@ -304,7 +304,7 @@ func init() {
 			MethodFunc: elfBuiltinReadSection,
 		},
 
-		// Builtin: elf.read_section(string, array) -> no return
+		// Builtin: elf.write_section(string, array) -> no return
 		// Attempts to write the contents of the arg[1] byte array to the arg[0]
 		// section with arg[2] offset. This mutates the elf file object but not the copy on disk.
 		// Call the save() function to make the changes persistent.

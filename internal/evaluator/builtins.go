@@ -354,7 +354,7 @@ func intArrayToBytes(src *object.Array, dst []byte) *object.Error {
 	for idx, obj := range src.Elements {
 		intByte, isInt := obj.(*object.Integer)
 		if !isInt || (intByte.Value < 0 || intByte.Value > 255) {
-			return newError("expecting an array of bytes (0 <= n <= 255")
+			return newError("expecting an array of bytes (0 <= n <= 255)")
 		}
 		dst[idx] = byte(intByte.Value)
 	}
