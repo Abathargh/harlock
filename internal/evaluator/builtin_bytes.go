@@ -32,7 +32,7 @@ func bytesBuiltinWriteAt(this object.Object, args ...object.Object) object.Objec
 func bytesBuiltinReadAt(this object.Object, args ...object.Object) object.Object {
 	bytesThis := this.(*object.BytesFile)
 
-	position := args[1].(*object.Integer)
+	position := args[0].(*object.Integer)
 	size := args[1].(*object.Integer)
 	if position.Value < 0 || size.Value < 0 {
 		return newError("type error: position and size must be positive integers")
