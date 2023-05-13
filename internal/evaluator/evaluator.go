@@ -132,17 +132,16 @@ func init() {
 	builtinMethods = make(map[object.ObjectType]MethodMapping)
 	builtinMethods[object.ArrayObj] = MethodMapping{
 		// Builtin: array.map(function) -> array
-		// Returns an array where the nth element is equals to the returned value of
-		// the passed function being called with the original array nth element as an
-		// input argument.
+		// Applies the passed function to each element of the array and returns a new
+		// array with the modified values.
 		"map": &object.Method{
 			Name:       "map",
 			ArgTypes:   []object.ObjectType{object.FunctionObj},
 			MethodFunc: arrayBuiltinMap,
 		},
 
-		// Builtin: array.pop() -> any
-		// Removes the last element from the array and returns it.
+		// Builtin: array.pop() -> array
+		// Removes the last element from the array and returns a copy of the new array.
 		"pop": &object.Method{
 			Name:       "pop",
 			ArgTypes:   []object.ObjectType{},
@@ -304,13 +303,13 @@ func init() {
 			MethodFunc: elfBuiltinReadSection,
 		},
 
-		// Builtin: elf.write_section(string, array) -> no return
+		// Builtin: elf.write_section(string, array, int) -> no return
 		// Attempts to write the contents of the arg[1] byte array to the arg[0]
 		// section with arg[2] offset. This mutates the elf file object but not the copy on disk.
 		// Call the save() function to make the changes persistent.
 		"write_section": &object.Method{
 			Name:       "write_section",
-			ArgTypes:   []object.ObjectType{object.StringObj, object.AnyObj, object.IntegerObj},
+			ArgTypes:   []object.ObjectType{object.StringObj, object.ArrayObj, object.IntegerObj},
 			MethodFunc: elfBuiltinWriteSection,
 		},
 	}
