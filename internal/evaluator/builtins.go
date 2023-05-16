@@ -177,7 +177,7 @@ func builtinType(args ...object.Object) object.Object {
 	if args[0] == nil {
 		return NULL
 	}
-	return &object.Type{Value: args[0].Type()}
+	return &object.String{Value: string(args[0].Type())}
 }
 
 func builtinPrint(args ...object.Object) object.Object {
