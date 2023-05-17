@@ -622,19 +622,25 @@ func TestMapIndexExpressions(t *testing.T) {
 func TestArrayBuiltinMethods(t *testing.T) {
 	tests := []struct {
 		input    string
-		expected []int64
+		expected any
 	}{
 		{`[1, 2].push(3)`, []int64{1, 2, 3}},
 		{`[1, 2].pop()`, []int64{1}},
 		{`[1, 2, 3, 4].slice(1, 3)`, []int64{2, 3}},
 		{`[1, 2, 3].map(fun(e) { ret e * 2 })`, []int64{2, 4, 6}},
+		{`[1, 2, 3, 255, 254].map(hex)`, []string{"0x01", "0x02", "0x03", "0xff", "0xfe"}},
 		{`[[10, 5, 7].reduce(fun(x, y) { ret x+y })]`, []int64{22}},
 		{"var x = 2\n[[10, 5, 7].reduce(fun(x, y) { ret x+y }, x)]", []int64{24}},
 	}
 
 	for _, testCase := range tests {
 		evalArrayBuiltin := testEval(testCase.input)
-		testArrayObject(t, evalArrayBuiltin, testCase.expected)
+		switch expected := testCase.expected.(type) {
+		case []int64:
+			testArrayObject(t, evalArrayBuiltin, expected)
+		case []string:
+			testStringArrayObject(t, evalArrayBuiltin, expected)
+		}
 	}
 }
 
@@ -1044,6 +1050,20 @@ func testIntegerObject(t *testing.T, obj object.Object, expected int64) bool {
 	return true
 }
 
+func testStringObject(t *testing.T, obj object.Object, expected string) bool {
+	strObj, ok := obj.(*object.String)
+	if !ok {
+		t.Errorf("expected object to be an string (%s), got %T", expected, obj)
+		return false
+	}
+
+	if strObj.Value != expected {
+		t.Errorf("expected %s, got %s", expected, strObj.Value)
+		return false
+	}
+	return true
+}
+
 func testArrayObject(t *testing.T, obj object.Object, expected []int64) bool {
 	arrayObj, ok := obj.(*object.Array)
 	if !ok {
@@ -1058,6 +1078,26 @@ func testArrayObject(t *testing.T, obj object.Object, expected []int64) bool {
 
 	for idx, element := range arrayObj.Elements {
 		if !testIntegerObject(t, element, expected[idx]) {
+			return false
+		}
+	}
+	return true
+}
+
+func testStringArrayObject(t *testing.T, obj object.Object, expected []string) bool {
+	arrayObj, ok := obj.(*object.Array)
+	if !ok {
+		t.Errorf("expected object to be an Array, got %T", obj)
+		return false
+	}
+
+	if len(arrayObj.Elements) != len(expected) {
+		t.Errorf("expected array with %d elements, got %d", len(arrayObj.Elements), len(expected))
+		return false
+	}
+
+	for idx, element := range arrayObj.Elements {
+		if !testStringObject(t, element, expected[idx]) {
 			return false
 		}
 	}

@@ -135,8 +135,10 @@ func init() {
 		// Applies the passed function to each element of the array and returns a new
 		// array with the modified values.
 		"map": &object.Method{
-			Name:       "map",
-			ArgTypes:   []object.ObjectType{object.FunctionObj},
+			Name: "map",
+			ArgTypes: []object.ObjectType{
+				object.OrType(object.FunctionObj, object.BuiltinObj),
+			},
 			MethodFunc: arrayBuiltinMap,
 		},
 

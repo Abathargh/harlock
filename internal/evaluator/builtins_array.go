@@ -1,6 +1,8 @@
 package evaluator
 
-import "github.com/Abathargh/harlock/internal/object"
+import (
+	"github.com/Abathargh/harlock/internal/object"
+)
 
 func arrayBuiltinPop(this object.Object, _ ...object.Object) object.Object {
 	arrayThis := this.(*object.Array)
@@ -45,10 +47,17 @@ func arrayBuiltinSlice(this object.Object, args ...object.Object) object.Object 
 
 func arrayBuiltinMap(this object.Object, args ...object.Object) object.Object {
 	arrayThis := this.(*object.Array)
-	fun := args[0].(*object.Function)
+	fun := args[0]
 
-	if len(fun.Parameters) != 1 {
-		return newError("type error: the map callback requires exactly one argument (a one-args function(x) -> x)")
+	switch callable := fun.(type) {
+	case *object.Function:
+		if len(callable.Parameters) != 1 {
+			return newError("type error: the map callback requires exactly one argument (a one-args function(x) -> x)")
+		}
+	case *object.Builtin:
+		if len(callable.GetBuiltinArgTypes()) != 1 {
+			return newError("type error: the map callback requires exactly one argument (a one-args function(x) -> x)")
+		}
 	}
 
 	retArray := make([]object.Object, len(arrayThis.Elements))
