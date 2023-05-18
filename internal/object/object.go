@@ -15,26 +15,27 @@ import (
 type ObjectType string
 
 const (
-	AnyObj      = "Any"
-	AnyVarargs  = "Any Varargs"
-	AnyOptional = "Any optional"
+	AnyObj      ObjectType = "Any"
+	AnyVarargs  ObjectType = "Any Varargs"
+	AnyOptional ObjectType = "Any optional"
 
-	NullObj        = "Null"
-	TypeObj        = "Type"
-	SetObj         = "Set"
-	MapObj         = "Map"
-	HexObj         = "Hex File"
-	ElfObj         = "Elf File"
-	BytesObj       = "Bytes File"
-	ErrorObj       = "Error"
-	ArrayObj       = "Array"
-	StringObj      = "String"
-	MethodObj      = "Method"
-	IntegerObj     = "Int"
-	BooleanObj     = "Bool"
-	BuiltinObj     = "Builtin Function"
-	FunctionObj    = "Function"
-	ReturnValueObj = "Return value"
+	NullObj         ObjectType = "Null"
+	TypeObj         ObjectType = "Type"
+	SetObj          ObjectType = "Set"
+	MapObj          ObjectType = "Map"
+	HexObj          ObjectType = "Hex File"
+	ElfObj          ObjectType = "Elf File"
+	BytesObj        ObjectType = "Bytes File"
+	ErrorObj        ObjectType = "Error"
+	ArrayObj        ObjectType = "Array"
+	StringObj       ObjectType = "String"
+	MethodObj       ObjectType = "Method"
+	IntegerObj      ObjectType = "Int"
+	BooleanObj      ObjectType = "Bool"
+	BuiltinObj      ObjectType = "Builtin Function"
+	FunctionObj     ObjectType = "Function"
+	RuntimeErrorObj ObjectType = "Runtime Error"
+	ReturnValueObj  ObjectType = "Return value"
 )
 
 type BuiltinFunction func(args ...Object) Object
@@ -112,7 +113,6 @@ func (rv *ReturnValue) Inspect() string {
 }
 
 type Error struct {
-	// TODO add subtype info referring to a typed enum for different error values
 	Message string
 }
 
@@ -122,6 +122,30 @@ func (e *Error) Type() ObjectType {
 
 func (e *Error) Inspect() string {
 	return fmt.Sprintf("Error: %s", e.Message)
+}
+
+type RuntimeErrorType string
+
+const (
+	TypeError    RuntimeErrorType = "Type Error"
+	KeyError     RuntimeErrorType = "Key Error"
+	HexError                      = "Hex Error"
+	ElfError                      = "Elf Error"
+	FileError                     = "File Error"
+	GenericError                  = "Error"
+)
+
+type RuntimeError struct {
+	Kind    RuntimeErrorType
+	Message string
+}
+
+func (ee *RuntimeError) Type() ObjectType {
+	return RuntimeErrorObj
+}
+
+func (ee *RuntimeError) Inspect() string {
+	return fmt.Sprintf("%s : %s", ee.Kind, ee.Message)
 }
 
 type Function struct {

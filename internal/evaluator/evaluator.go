@@ -374,19 +374,24 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	case *ast.ReturnStatement:
 		if currentNode.ReturnValue != nil {
 			returnValue := Eval(currentNode.ReturnValue, env)
+			if isError(returnValue) {
+				return returnValue
+			}
 			return &object.ReturnValue{Value: returnValue}
 		}
 		return &object.ReturnValue{Value: NULL}
 	case *ast.VarStatement:
-		letValue := Eval(currentNode.Value, env)
-		if letValue == nil || letValue == NULL {
+		varValue := Eval(currentNode.Value, env)
+		if isError(varValue) {
+			return varValue
+		}
+		if varValue == nil || varValue == NULL {
 			return NULL
 		}
-
-		if letValue.Type() == object.ReturnValueObj {
-			return unwrapReturnValue(letValue)
+		if varValue.Type() == object.ReturnValueObj {
+			return unwrapReturnValue(varValue)
 		}
-		env.Set(currentNode.Name.Value, letValue)
+		env.Set(currentNode.Name.Value, varValue)
 	case *ast.NoOp:
 		// do nothing
 	case *ast.Identifier:
@@ -421,7 +426,7 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return evalMethodExpression(currentNode, env)
 	case *ast.TryExpression:
 		exprValue := Eval(currentNode.Expression, env)
-		if isError(exprValue) {
+		if isRuntimeError(exprValue) {
 			return &object.ReturnValue{Value: exprValue}
 		}
 		return exprValue
@@ -486,7 +491,7 @@ func evalBlockStatement(blockStatement *ast.BlockStatement, env *object.Environm
 	for _, statement := range blockStatement.Statements {
 		result = Eval(statement, env)
 		if result != nil &&
-			(result.Type() == object.ReturnValueObj || result.Type() == object.ErrorObj) {
+			(result.Type() == object.ReturnValueObj || result.Type() == object.RuntimeErrorObj) {
 			return result
 		}
 	}
@@ -779,8 +784,7 @@ func evalMapIndexExpression(hashmap, index object.Object, line int) object.Objec
 
 	pair, ok := mapObject.Mappings[key.HashKey()]
 	if !ok {
-		// element is not present, default is null for now
-		return NULL
+		return newKeyError("%s", index.Inspect())
 	}
 	return pair.Value
 }
@@ -953,5 +957,27 @@ func isError(obj object.Object) bool {
 	if obj == nil {
 		return false
 	}
-	return obj.Type() == object.ErrorObj
+	t := obj.Type()
+	return t == object.ErrorObj
+}
+
+func newTypeError(msg string, args ...any) *object.RuntimeError {
+	return &object.RuntimeError{
+		Kind:    object.TypeError,
+		Message: fmt.Sprintf(msg, args...),
+	}
+}
+
+func newKeyError(msg string, args ...any) *object.RuntimeError {
+	return &object.RuntimeError{
+		Kind:    object.KeyError,
+		Message: fmt.Sprintf(msg, args...),
+	}
+}
+
+func isRuntimeError(obj object.Object) bool {
+	if obj == nil {
+		return false
+	}
+	return obj.Type() == object.RuntimeErrorObj
 }

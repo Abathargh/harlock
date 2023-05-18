@@ -356,10 +356,18 @@ func TestBuiltinFunctions(t *testing.T) {
 			testIntegerObject(t, evalBuiltin, int64(expected))
 		case bool:
 			testBooleanObject(t, evalBuiltin, expected)
+		case string:
+			testStringObject(t, evalBuiltin, expected)
 		case object.ObjectType:
 			if evalBuiltin.Type() != expected {
-				t.Errorf("expected object of type %s, got %s", expected, evalBuiltin.Type())
+				t.Errorf("%s: expected object of type %s, got %s", testCase.input, expected, evalBuiltin.Type())
 			}
+		case nil:
+			if evalBuiltin != nil {
+				t.Errorf("%s: expected nil, got %s", testCase.input, evalBuiltin.Type())
+			}
+		default:
+			t.Errorf("%s: expected object of type %s, got %q", testCase.input, expected, evalBuiltin)
 		}
 	}
 }
@@ -602,7 +610,7 @@ func TestMapIndexExpressions(t *testing.T) {
 		{`{10: 3}[10]`, 3},
 		{`{true: 4}[true]`, 4},
 		{`{true: "test"}[true]`, object.StringObj},
-		{`{true: "test"}["no_key"]`, object.ErrorObj},
+		{`{true: "test"}["no_key"]`, object.RuntimeErrorObj},
 	}
 
 	for _, testCase := range tests {
@@ -625,6 +633,7 @@ func TestArrayBuiltinMethods(t *testing.T) {
 		expected any
 	}{
 		{`[1, 2].push(3)`, []int64{1, 2, 3}},
+		{`[1, 2].push(33)`, []int64{1, 2, 3}},
 		{`[1, 2].pop()`, []int64{1}},
 		{`[1, 2, 3, 4].slice(1, 3)`, []int64{2, 3}},
 		{`[1, 2, 3].map(fun(e) { ret e * 2 })`, []int64{2, 4, 6}},
@@ -1000,16 +1009,9 @@ func TestTryExpression(t *testing.T) {
 	}{
 		{"var a = try 1\na", 1},
 		{"var a = fun() { ret try 12 }\na()", 12},
-		{"var a = fun() { ret try 1/0 }\na()", nil},
-		{`
-var mul = fun(x, y) {
-	ret x / y
-}
-var double_mul = fun(x, y) {
-	var m = try mul(x, y)
-	ret 2 * m
-}
-double_mul(1, 0)`, nil},
+		{"var a = fun() { ret try 1/0 }\na()", object.ErrorObj},
+		{"var m = {\"test\": \"val\"}\nvar a = fun(m) { ret try m[\"err\"] }\na(m)", object.RuntimeErrorObj},
+		{"var f = fun() {\n var a = try from_hex(\"jkjk\")\nret a\n }\nf()", object.RuntimeErrorObj},
 	}
 
 	for _, testCase := range tests {
@@ -1017,9 +1019,14 @@ double_mul(1, 0)`, nil},
 		switch expected := testCase.expected.(type) {
 		case int:
 			testIntegerObject(t, evalTryExpression, int64(expected))
-		default:
-			if evalTryExpression.Type() != object.ErrorObj {
-				t.Errorf("Expected an Error object, got %s", object.ErrorObj)
+		case object.ObjectType:
+			fmt.Println(evalTryExpression, expected)
+			if evalTryExpression.Type() != expected {
+				errExpr, isErr := evalTryExpression.(*object.Error)
+				if isErr {
+					fmt.Printf("Error: %s", errExpr.Message)
+				}
+				t.Errorf("Expected a %s object, got %s", expected, evalTryExpression.Type())
 			}
 		}
 	}
