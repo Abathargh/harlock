@@ -317,8 +317,9 @@ func TestBuiltinFunctions(t *testing.T) {
 		expected any
 	}{
 		{`hex(255)`, "0xff"},
-		{`hex([0x01, 0x04, 0xfa, 0xcb])`, "0x0104facb"},
-		{`hex([0x01, 0x04, 0xfa, 1000])`, object.ErrorObj},
+		{`hex()`, object.ErrorObj},
+		{`hex([0x01, 0x04, 0xfa, 0xcb])`, "0104facb"},
+		{`hex([0x01, 0x04, 0xfa, 1000])`, object.RuntimeErrorObj},
 		{`hex("error")`, object.ErrorObj},
 		{`from_hex("ffab21")`, object.ArrayObj},
 		{`from_hex(0)`, object.ErrorObj},
@@ -329,15 +330,16 @@ func TestBuiltinFunctions(t *testing.T) {
 		{`len(set(1, 4, 7, 11))`, 4},
 		{`len(0)`, object.ErrorObj},
 		{`set("ciao", 1, 2, 3)`, object.SetObj},
-		{`set(set(1))`, object.ErrorObj},
+		{`set(set(1))`, object.RuntimeErrorObj},
 		{`type("ciao")`, object.StringObj},
-		{`type(1)`, object.IntegerObj},
+		{`type(1)`, object.StringObj},
 		{`type(1/0)`, object.ErrorObj},
 		{`type("ciao")`, object.StringObj},
-		{`type([])`, object.ArrayObj},
-		{`type({})`, object.MapObj},
-		{`type(type([]))`, object.TypeObj},
+		{`type([])`, object.StringObj},
+		{`type({})`, object.StringObj},
+		{`type(type([]))`, object.StringObj},
 		{`type(a)`, object.ErrorObj},
+		{`type()`, object.ErrorObj},
 		{`print("ciao")`, nil},
 		{`print(a)`, object.ErrorObj},
 		{`contains([1, 2, 3], 1)`, true},
@@ -633,22 +635,45 @@ func TestArrayBuiltinMethods(t *testing.T) {
 		expected any
 	}{
 		{`[1, 2].push(3)`, []int64{1, 2, 3}},
-		{`[1, 2].push(33)`, []int64{1, 2, 3}},
+		{`[1, 2].push(33)`, []int64{1, 2, 33}},
+		{`[1, 2].push()`, object.ErrorObj},
+		{`[1, 2].push(1, 2)`, object.ErrorObj},
 		{`[1, 2].pop()`, []int64{1}},
+		{`[1, 2].pop(1)`, object.ErrorObj},
 		{`[1, 2, 3, 4].slice(1, 3)`, []int64{2, 3}},
+		{`[1, 2, 3, 4].slice(-1, 3)`, object.ErrorObj},
+		{`[1, 2, 3, 4].slice(0, 20)`, object.ErrorObj},
+		{`[1, 2, 3, 4].slice(0)`, object.ErrorObj},
+		{`[1, 2, 3, 4].slice(0, 1, 2)`, object.ErrorObj},
+		{`[1, 2, 3, 4].slice(0, "")`, object.ErrorObj},
+		{`[1, 2, 3, 4].slice("", "")`, object.ErrorObj},
 		{`[1, 2, 3].map(fun(e) { ret e * 2 })`, []int64{2, 4, 6}},
 		{`[1, 2, 3, 255, 254].map(hex)`, []string{"0x01", "0x02", "0x03", "0xff", "0xfe"}},
+		{`[1, 2, 3, 255, 254].map()`, object.ErrorObj},
+		{`[1, 2, 3, 255, 254].map(12)`, object.ErrorObj},
+		{`[1, 2, 3, 255, 254].map(hex, 12)`, object.ErrorObj},
 		{`[[10, 5, 7].reduce(fun(x, y) { ret x+y })]`, []int64{22}},
 		{"var x = 2\n[[10, 5, 7].reduce(fun(x, y) { ret x+y }, x)]", []int64{24}},
+		{"var x = 2\n[[10, 5, 7].reduce()]", object.ErrorObj},
 	}
 
 	for _, testCase := range tests {
 		evalArrayBuiltin := testEval(testCase.input)
 		switch expected := testCase.expected.(type) {
 		case []int64:
-			testArrayObject(t, evalArrayBuiltin, expected)
+			if !testArrayObject(t, evalArrayBuiltin, expected) {
+				fmt.Printf("input: %s", testCase.input)
+			}
 		case []string:
 			testStringArrayObject(t, evalArrayBuiltin, expected)
+		case object.ObjectType:
+			if expected == object.RuntimeErrorObj && evalArrayBuiltin.Type() != object.RuntimeErrorObj {
+				errExpr, isErr := evalArrayBuiltin.(*object.Error)
+				if isErr {
+					fmt.Printf("Error: %s", errExpr.Message)
+				}
+				t.Errorf("%s: Expected a %s object, got %s", testCase.input, expected, evalArrayBuiltin.Type())
+			}
 		}
 	}
 }
@@ -1020,7 +1045,6 @@ func TestTryExpression(t *testing.T) {
 		case int:
 			testIntegerObject(t, evalTryExpression, int64(expected))
 		case object.ObjectType:
-			fmt.Println(evalTryExpression, expected)
 			if evalTryExpression.Type() != expected {
 				errExpr, isErr := evalTryExpression.(*object.Error)
 				if isErr {
