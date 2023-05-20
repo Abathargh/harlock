@@ -667,13 +667,7 @@ func TestArrayBuiltinMethods(t *testing.T) {
 		case []string:
 			testStringArrayObject(t, evalArrayBuiltin, expected)
 		case object.ObjectType:
-			if expected == object.RuntimeErrorObj && evalArrayBuiltin.Type() != object.RuntimeErrorObj {
-				errExpr, isErr := evalArrayBuiltin.(*object.Error)
-				if isErr {
-					fmt.Printf("Error: %s", errExpr.Message)
-				}
-				t.Errorf("%s: Expected a %s object, got %s", testCase.input, expected, evalArrayBuiltin.Type())
-			}
+			testError(t, testCase.input, expected, evalArrayBuiltin)
 		}
 	}
 }
@@ -684,12 +678,33 @@ func TestMapBuiltinMethods(t *testing.T) {
 		expected [][]int64
 	}{
 		{"var m = {1: 2}\nm.set(3, 4)\nm", [][]int64{{1, 2}, {3, 4}}},
+		{"var m = {1: 2}\nm.set(3, 4)\nm", [][]int64{{1, 2}, {3, 4}}},
 		{"var m  = {1: 2, 3: 4}\nm.pop(3)\nm", [][]int64{{1, 2}}},
 	}
 
 	for _, testCase := range tests {
 		evalMapBuiltin := testEval(testCase.input)
 		testMapObject(t, evalMapBuiltin, testCase.expected)
+	}
+}
+
+func TestMapBuiltinMethodsFailure(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected object.ObjectType
+	}{
+		{"var m = {1: 2}\nm.set()", object.ErrorObj},
+		{"var m = {1: 2}\nm.set(3)", object.ErrorObj},
+		{"var m = {1: 2}\nm.set(3, 4, 5)", object.ErrorObj},
+		{"var m = {1: 2}\nm.set([1, 2], 5)", object.RuntimeErrorObj},
+		{"var m  = {1: 2, 3: 4}\nm.pop()", object.ErrorObj},
+		{"var m  = {1: 2, 3: 4}\nm.pop(3, 2)", object.ErrorObj},
+		{"var m  = {1: 2, 3: 4}\nm.pop([1,2])", object.RuntimeErrorObj},
+	}
+
+	for _, testCase := range tests {
+		evalMapBuiltin := testEval(testCase.input)
+		testError(t, testCase.input, testCase.expected, evalMapBuiltin)
 	}
 }
 
@@ -1022,8 +1037,27 @@ func TestSetBuiltinMethods(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		evalArrayBuiltin := testEval(testCase.input)
-		testSetObject(t, evalArrayBuiltin, testCase.expected)
+		evalSetBuiltin := testEval(testCase.input)
+		testSetObject(t, evalSetBuiltin, testCase.expected)
+	}
+}
+
+func TestSetBuiltinMethodsFailure(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected object.ObjectType
+	}{
+		{"var s = set(1, 2)\ns.add()", object.ErrorObj},
+		{"var s = set(1, 2)\ns.add(1, 3)", object.ErrorObj},
+		{"var s = set(1, 2)\ns.add([1, 2, 3])", object.RuntimeErrorObj},
+		{"var s = set(1, 2, 4, 7)}\ns.remove()", object.ErrorObj},
+		{"var s = set(1, 2, 4, 7)}\ns.remove(7, 1)", object.ErrorObj},
+		{"var s = set(1, 2, 4, 7)}\ns.remove([1, 2, 3])", object.RuntimeErrorObj},
+	}
+
+	for _, testCase := range tests {
+		evalSetBuiltin := testEval(testCase.input)
+		testError(t, testCase.input, testCase.expected, evalSetBuiltin)
 	}
 }
 
@@ -1214,6 +1248,16 @@ func testNullObject(t *testing.T, obj object.Object) bool {
 		return false
 	}
 	return true
+}
+
+func testError(t *testing.T, input string, expected object.ObjectType, eval object.Object) {
+	if expected == object.RuntimeErrorObj && eval.Type() != object.RuntimeErrorObj {
+		errExpr, isErr := eval.(*object.Error)
+		if isErr {
+			fmt.Printf("Error: %s", errExpr.Message)
+		}
+		t.Errorf("%s: Expected a %s object, got %s", input, expected, eval.Type())
+	}
 }
 
 var elfFile = []byte{
