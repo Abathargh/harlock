@@ -403,6 +403,9 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	case *ast.CallExpression:
 		functionCall := Eval(currentNode.Function, env)
 		args := evalExpressions(currentNode.Arguments, env, currentNode.LineNumber)
+		if len(args) == 1 && isError(args[0]) {
+			return args[0]
+		}
 		return callFunction(currentNode.String(), functionCall, args, currentNode.LineNumber)
 	case *ast.ArrayLiteral:
 		elements := evalExpressions(currentNode.Elements, env, currentNode.LineNumber)

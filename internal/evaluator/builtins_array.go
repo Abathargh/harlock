@@ -9,7 +9,7 @@ func arrayBuiltinPop(this object.Object, _ ...object.Object) object.Object {
 
 	newArrLen := len(arrayThis.Elements) - 1
 	if newArrLen < 0 {
-		return newError("type error: cannot pop from an empty array")
+		return newTypeError("cannot pop from an empty array")
 	}
 
 	newArr := make([]object.Object, newArrLen, newArrLen)
@@ -36,7 +36,7 @@ func arrayBuiltinSlice(this object.Object, args ...object.Object) object.Object 
 	arrayLen := int64(len(arrayThis.Elements))
 
 	if end < start || end <= 0 || start < 0 || start >= arrayLen || end > arrayLen {
-		return newError("type error: required end < start, 0 <= start < len, 0 < end <= len")
+		return newTypeError("required end < start, 0 <= start < len, 0 < end <= len")
 	}
 
 	length := end - start
@@ -52,11 +52,11 @@ func arrayBuiltinMap(this object.Object, args ...object.Object) object.Object {
 	switch callable := fun.(type) {
 	case *object.Function:
 		if len(callable.Parameters) != 1 {
-			return newError("type error: the map callback requires exactly one argument (a one-args function(x) -> x)")
+			return newTypeError("the map callback requires exactly one argument (a one-args function(x) -> x)")
 		}
 	case *object.Builtin:
 		if len(callable.GetBuiltinArgTypes()) != 1 {
-			return newError("type error: the map callback requires exactly one argument (a one-args function(x) -> x)")
+			return newTypeError("the map callback requires exactly one argument (a one-args function(x) -> x)")
 		}
 	}
 
@@ -65,7 +65,7 @@ func arrayBuiltinMap(this object.Object, args ...object.Object) object.Object {
 	for idx, elem := range arrayThis.Elements {
 		res := callFunction("<anonymous callback>", fun, []object.Object{elem}, noLineInfo)
 		if res == nil || res.Type() == object.ErrorObj {
-			return newError("type error: map requires a fun taking one arg and returning one value (function(x) -> x)")
+			return newTypeError("map requires a fun taking one arg and returning one value (function(x) -> x)")
 		}
 		retArray[idx] = res
 	}
@@ -78,22 +78,19 @@ func arrayBuiltinReduce(this object.Object, args ...object.Object) object.Object
 
 	fun := args[0].(*object.Function)
 	if len(fun.Parameters) != 2 {
-		return newError("type error: the reduce callbacl requires only exactly two arguments " +
+		return newTypeError("the reduce callbacl requires only exactly two arguments " +
 			"(a two args function(x, y) -> z)")
 	}
 
 	if len(arrayThis.Elements) == 0 {
-		return newError("type error: expected a non-empty array")
+		return newTypeError("expected a non-empty array")
 	}
 
-	var start int
-	var accumulator object.Object
+	start := 1
+	accumulator := arrayThis.Elements[0]
 	if argn == 2 {
 		start = 0
 		accumulator = args[1]
-	} else {
-		start = 1
-		accumulator = arrayThis.Elements[0]
 	}
 
 	for _, elem := range arrayThis.Elements[start:] {

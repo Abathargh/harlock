@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	typeErrTemplate = "type error: function '%s' requires %d parameter(s) (%s), got %s(%s) (%s)"
-	typeErrNoArgs   = "type error: function '%s' - %s"
+	typeErrTemplate = "function '%s' requires %d parameter(s) (%s), got %s(%s) (%s)"
+	typeErrNoArgs   = "function '%s' - %s"
 )
 
 func checkType(expected, actual object.ObjectType) bool {
@@ -58,7 +58,7 @@ func typeArgsError(builtin object.CallableBuiltin, args []object.Object) *object
 		argsTypeStr = "no args"
 	}
 	errorStr := fmt.Sprintf(typeErrTemplate, name, len(reqTypes), reqStr, name, argsValueStr, argsTypeStr)
-	return &object.Error{Message: errorStr}
+	return newError(errorStr)
 }
 
 func execBuiltin(builtin object.CallableBuiltin, args ...object.Object) object.Object {
@@ -112,8 +112,8 @@ func execBuiltin(builtin object.CallableBuiltin, args ...object.Object) object.O
 exec:
 	outcome := builtin.Call(args...)
 	switch typedOutcome := outcome.(type) {
-	case *object.Error:
-		return newError(typeErrNoArgs, name, typedOutcome.Message)
+	case *object.RuntimeError:
+		return newTypeError(typeErrNoArgs, name, typedOutcome.Message)
 	default:
 		return outcome
 	}
@@ -136,7 +136,7 @@ func builtinHex(args ...object.Object) object.Object {
 		}
 		return &object.String{Value: hex2.EncodeToString(byteData)}
 	default:
-		return newError("hex requires one integer/string as argument")
+		return newTypeError("hex requires one integer/string as argument")
 	}
 }
 
@@ -145,13 +145,13 @@ func builtinFromhex(args ...object.Object) object.Object {
 	strVal := hexString.Value
 	strLen := len(strVal)
 	if strLen%2 != 0 || strLen == 0 {
-		return newError("type error: wrong size for hex string literal")
+		return newTypeError("wrong size for hex string literal")
 	}
 	arr := make([]object.Object, strLen/2, strLen/2)
 	for idx := 0; idx < strLen; idx += 2 {
 		digit, err := strconv.ParseInt(strVal[idx:idx+2], 16, 64)
 		if err != nil {
-			return newError("invalid hex digit %s", strVal[idx:idx+2])
+			return newTypeError("invalid hex digit %s", strVal[idx:idx+2])
 		}
 		arr[idx/2] = &object.Integer{Value: digit}
 	}
@@ -169,7 +169,7 @@ func builtinLen(args ...object.Object) object.Object {
 	case *object.Set:
 		return &object.Integer{Value: int64(len(elem.Elements))}
 	default:
-		return newError("type not supported")
+		return newTypeError("unsupported type passed to the len builtin")
 	}
 }
 
@@ -199,7 +199,7 @@ func builtinSet(args ...object.Object) object.Object {
 			for _, elem := range seq.Elements {
 				hashableElem, isHashable := elem.(object.Hashable)
 				if !isHashable {
-					return newError("the passed key is not an hashable object")
+					return newTypeError("the passed key is not an hashable object")
 				}
 
 				hash := hashableElem.HashKey()
@@ -212,7 +212,7 @@ func builtinSet(args ...object.Object) object.Object {
 		default:
 			hashableElem, isHashable := seq.(object.Hashable)
 			if !isHashable {
-				return newError("the passed key is not an hashable object")
+				return newTypeError("the passed key is not an hashable object")
 			}
 
 			hash := hashableElem.HashKey()
@@ -236,7 +236,7 @@ func builtinContains(args ...object.Object) object.Object {
 	case *object.Map:
 		hashable, isHashable := args[1].(object.Hashable)
 		if !isHashable {
-			return newError("the passed key is not an hashable object")
+			return newTypeError("the passed key is not an hashable object")
 		}
 		_, contains := cont.Mappings[hashable.HashKey()]
 		if contains {
@@ -246,7 +246,7 @@ func builtinContains(args ...object.Object) object.Object {
 	case *object.Set:
 		hashable, isHashable := args[1].(object.Hashable)
 		if !isHashable {
-			return newError("the passed key is not an hashable object")
+			return newTypeError("the passed key is not an hashable object")
 		}
 		_, contains := cont.Elements[hashable.HashKey()]
 		if contains {
@@ -254,7 +254,7 @@ func builtinContains(args ...object.Object) object.Object {
 		}
 		return FALSE
 	default:
-		return newError("the passed object is not a valid container")
+		return newTypeError("the passed object is not a valid container")
 	}
 }
 
@@ -350,11 +350,11 @@ func builtinHash(args ...object.Object) object.Object {
 	}
 }
 
-func intArrayToBytes(src *object.Array, dst []byte) *object.Error {
+func intArrayToBytes(src *object.Array, dst []byte) *object.RuntimeError {
 	for idx, obj := range src.Elements {
 		intByte, isInt := obj.(*object.Integer)
 		if !isInt || (intByte.Value < 0 || intByte.Value > 255) {
-			return newError("expecting an array of bytes (0 <= n <= 255)")
+			return newTypeError("expecting an array of bytes (0 <= n <= 255)")
 		}
 		dst[idx] = byte(intByte.Value)
 	}
