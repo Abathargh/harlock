@@ -479,6 +479,65 @@ func TestArrayIndexExpressions(t *testing.T) {
 	}
 }
 
+func TestFailingFileBuiltins(t *testing.T) {
+	hexFile := `:020000021000EC
+:10C20000E0A5E6F6FDFFE0AEE00FE6FCFDFFE6FD93
+:10C21000FFFFF6F50EFE4B66F2FA0CFEF2F40EFE90
+:10C22000F04EF05FF06CF07DCA0050C2F086F097DF
+:10C23000F04AF054BCF5204830592D02E018BB03F9
+:020000022000DC
+:04000000FA00000200
+:00000001FF
+`
+
+	bytesFile := []byte{0x01, 0x02, 0x03}
+
+	if err := os.WriteFile("test.hex", []byte(hexFile), 0666); err != nil {
+		t.Fatalf("cannot create the test.hex file")
+	}
+	defer func() { _ = os.Remove("test.hex") }()
+
+	if err := os.WriteFile("test-bytes-file", bytesFile, 0666); err != nil {
+		t.Fatalf("cannot create the test-bytes-file file")
+	}
+	defer func() { _ = os.Remove("test-bytes-file") }()
+
+	testCases := []struct {
+		input    string
+		expected object.ObjectType
+	}{
+		{"open()", object.ErrorObj},
+		{"open(\"hex\")", object.ErrorObj},
+		{"open(\"hex\", 1, 2)", object.ErrorObj},
+		{"open(\"test.hex\", \"random\")", object.RuntimeErrorObj},
+		{"open(\"fake.hex\", \"hex\")", object.RuntimeErrorObj},
+		{"open(\"fake.elf\", \"elf\")", object.RuntimeErrorObj},
+		{"open(\"test.hex\", \"elf\")", object.RuntimeErrorObj},
+		{"open(\"fake\", \"bytes\")", object.RuntimeErrorObj},
+		{"open(\"test-bytes-file\", \"hex\")", object.RuntimeErrorObj},
+		{"open(\"test-bytes-file\", \"elf\")", object.RuntimeErrorObj},
+
+		{"save()", object.ErrorObj},
+		{"save(1)", object.ErrorObj},
+		{"save(\"test\")", object.ErrorObj},
+		{"save(1, 2)", object.ErrorObj},
+		{"save(open(\"fake\", \"bytes\"))", object.ErrorObj},
+
+		{"as_bytes()", object.ErrorObj},
+		{"as_bytes(1)", object.ErrorObj},
+		{"as_bytes(1, 2)", object.ErrorObj},
+		{"as_bytes(\"test\")", object.ErrorObj},
+		{"as_bytes(open(\"fake\", \"bytes\"))", object.ErrorObj},
+	}
+
+	for _, testCase := range testCases {
+		fileExpr := testEval(testCase.input)
+		if fileExpr.Type() != testCase.expected {
+			t.Errorf("%s: expected error of type %s, got %s", testCase.input, testCase.expected, fileExpr.Type())
+		}
+	}
+}
+
 func TestHexFile(t *testing.T) {
 	hexFile := `:020000021000EC
 :10C20000E0A5E6F6FDFFE0AEE00FE6FCFDFFE6FD93
