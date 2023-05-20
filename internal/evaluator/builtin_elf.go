@@ -30,23 +30,21 @@ func elfBuiltinWriteSection(this object.Object, args ...object.Object) object.Ob
 
 	offset := args[2].(*object.Integer)
 	if offset.Value < 0 {
-		return newError("type error: the offset must be a positive integer")
+		return newTypeError("the offset must be a positive integer")
 	}
 
 	byteArr := make([]byte, len(data.Elements))
 	for idx, elem := range data.Elements {
 		intElem, isInt := elem.(*object.Integer)
 		if !isInt || intElem.Value > maxByte || intElem.Value < 0 {
-			return newError("type error: data must be an array of 1 byte positive integers "+
+			return newTypeError("data must be an array of 1 byte positive integers "+
 				"(data[%d] = %d does not follow this constraint)", idx, intElem.Value)
 		}
 		byteArr[idx] = byte(intElem.Value)
 	}
 
-	err := elfThis.File.WriteSection(section.Value, byteArr, uint64(offset.Value))
-	if err != nil {
-		return newError("elf error: elf.write_section(%q, [%d]], %d): %s",
-			section.Value, len(byteArr), uint64(offset.Value), err)
+	if err := elfThis.File.WriteSection(section.Value, byteArr, uint64(offset.Value)); err != nil {
+		return newElfError("%s", err)
 	}
 	return nil
 }
@@ -57,8 +55,7 @@ func elfBuiltinReadSection(this object.Object, args ...object.Object) object.Obj
 
 	readData, err := elfThis.File.ReadSection(section.Value)
 	if err != nil {
-		return newError("elf error: elf.read_section(%q): %s",
-			section.Value, err)
+		return newElfError("%s", err)
 	}
 
 	retVal := &object.Array{Elements: make([]object.Object, len(readData))}
@@ -74,8 +71,7 @@ func elfBuiltinSectionAddress(this object.Object, args ...object.Object) object.
 
 	addr, err := elfThis.File.SectionAddress(section.Value)
 	if err != nil {
-		return newError("elf error: elf.section_address(%q): %s",
-			section.Value, err)
+		return newElfError("%s", err)
 	}
 
 	retVal := &object.Integer{Value: int64(addr)}
@@ -88,8 +84,7 @@ func elfBuiltinSectionSize(this object.Object, args ...object.Object) object.Obj
 
 	addr, err := elfThis.File.SectionSize(section.Value)
 	if err != nil {
-		return newError("elf error: elf.section_size(%q): %s",
-			section.Value, err)
+		return newElfError("%s", err)
 	}
 
 	retVal := &object.Integer{Value: int64(addr)}

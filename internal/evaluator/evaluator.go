@@ -988,6 +988,20 @@ func newFileError(msg string, args ...any) *object.RuntimeError {
 	}
 }
 
+func newHexError(msg string, args ...any) *object.RuntimeError {
+	return &object.RuntimeError{
+		Kind:    object.HexError,
+		Message: fmt.Sprintf(msg, args...),
+	}
+}
+
+func newElfError(msg string, args ...any) *object.RuntimeError {
+	return &object.RuntimeError{
+		Kind:    object.ElfError,
+		Message: fmt.Sprintf(msg, args...),
+	}
+}
+
 func newBytesError(msg string, args ...any) *object.RuntimeError {
 	return &object.RuntimeError{
 		Kind:    object.BytesError,
