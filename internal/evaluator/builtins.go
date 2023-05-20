@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	typeErrTemplate = "function '%s' requires %d parameter(s) (%s), got %s(%s) (%s)"
-	typeErrNoArgs   = "function '%s' - %s"
+	typeErrTemplate = "'%s' requires %d parameter(s) (%s), got %s(%s) (%s)"
+	typeErrNoArgs   = "'%s' - %s"
 )
 
 func checkType(expected, actual object.ObjectType) bool {

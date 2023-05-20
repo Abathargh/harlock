@@ -135,7 +135,7 @@ func init() {
 		// Applies the passed function to each element of the array and returns a new
 		// array with the modified values.
 		"map": &object.Method{
-			Name: "map",
+			Name: "array.map",
 			ArgTypes: []object.ObjectType{
 				object.OrType(object.FunctionObj, object.BuiltinObj),
 			},
@@ -145,7 +145,7 @@ func init() {
 		// Builtin: array.pop() -> array
 		// Removes the last element from the array and returns a copy of the new array.
 		"pop": &object.Method{
-			Name:       "pop",
+			Name:       "array.pop",
 			ArgTypes:   []object.ObjectType{},
 			MethodFunc: arrayBuiltinPop,
 		},
@@ -154,7 +154,7 @@ func init() {
 		// Adds an element to the tail of the array and returns the new array.
 		// The original array remains unchanged.
 		"push": &object.Method{
-			Name:       "push",
+			Name:       "array.push",
 			ArgTypes:   []object.ObjectType{object.AnyObj},
 			MethodFunc: arrayBuiltinPush,
 		},
@@ -164,7 +164,7 @@ func init() {
 		// interval. This returns a new array and copies each element in the new
 		// array. Lists/Maps/Sets/Files are copied as references.
 		"slice": &object.Method{
-			Name:       "slice",
+			Name:       "array.slice",
 			ArgTypes:   []object.ObjectType{object.IntegerObj, object.IntegerObj},
 			MethodFunc: arrayBuiltinSlice,
 		},
@@ -174,7 +174,7 @@ func init() {
 		// gets used as the result of the previous iteration. An accumulator init value
 		// can be passed as an optional final argument.
 		"reduce": &object.Method{
-			Name:       "reduce",
+			Name:       "array.reduce",
 			ArgTypes:   []object.ObjectType{object.FunctionObj, object.AnyOptional},
 			MethodFunc: arrayBuiltinReduce,
 		},
@@ -184,7 +184,7 @@ func init() {
 		// Builtin: map.set(any, any) -> no return
 		// Adds the (arg[0], arg[1]) key value couple to the map. This mutates the map.
 		"set": &object.Method{
-			Name:       "set",
+			Name:       "map.set",
 			ArgTypes:   []object.ObjectType{object.AnyObj, object.AnyObj},
 			MethodFunc: mapBuiltinSet,
 		},
@@ -192,7 +192,7 @@ func init() {
 		// Builtin: map.pop(any) -> no return
 		// Removes the passed key from the map if it exists. This mutates the map.
 		"pop": &object.Method{
-			Name:       "pop",
+			Name:       "map.pop",
 			ArgTypes:   []object.ObjectType{object.AnyObj},
 			MethodFunc: mapBuiltinPop,
 		},
@@ -202,7 +202,7 @@ func init() {
 		// Builtin: set.add(any) -> no return
 		// Adds the element to the set. This mutates the set.
 		"add": &object.Method{
-			Name:       "add",
+			Name:       "set.add",
 			ArgTypes:   []object.ObjectType{object.AnyObj},
 			MethodFunc: setBuiltinAdd,
 		},
@@ -210,7 +210,7 @@ func init() {
 		// Builtin: set.remove(any) -> no return
 		// Removes the passed element from the set if it exists. This mutates the set.
 		"remove": &object.Method{
-			Name:       "remove",
+			Name:       "set.remove",
 			ArgTypes:   []object.ObjectType{object.AnyObj},
 			MethodFunc: setBuiltinRemove,
 		},
@@ -220,7 +220,7 @@ func init() {
 		// Builtin: hex.record(int) -> string
 		// Returns the nth record as a string, if it exists and is a valid index, or an error.
 		"record": &object.Method{
-			Name:       "record",
+			Name:       "hex.record",
 			ArgTypes:   []object.ObjectType{object.IntegerObj},
 			MethodFunc: hexBuiltinRecord,
 		},
@@ -228,7 +228,7 @@ func init() {
 		"size": &object.Method{
 			// Builtin: hex.size(int) -> int
 			// Returns the size of the file as a number of records it contains.
-			Name:       "size",
+			Name:       "hex.size",
 			ArgTypes:   []object.ObjectType{},
 			MethodFunc: hexBuiltinSize,
 		},
@@ -238,7 +238,7 @@ func init() {
 			// Attempts to read arg[1] number of bytes starting from arg[0] position.
 			// This returns an array containing the data that would be found in the
 			// corresponding .bin file obtained from the hex file as a byte stream.
-			Name:       "read_at",
+			Name:       "hex.read_at",
 			ArgTypes:   []object.ObjectType{object.IntegerObj, object.IntegerObj},
 			MethodFunc: hexBuiltinReadAt,
 		},
@@ -248,7 +248,7 @@ func init() {
 			// Attempts to write the contents of the arg[1] byte array to the  arg[0]
 			// position. This mutates the hex file object but not the copy on disk.
 			// Call the save() function to make the changes persistent.
-			Name:       "write_at",
+			Name:       "hex.write_at",
 			ArgTypes:   []object.ObjectType{object.IntegerObj, object.ArrayObj},
 			MethodFunc: hexBuiltinWriteAt,
 		},
@@ -257,7 +257,7 @@ func init() {
 			// Builtin: hex.binary_size(int) -> int
 			// Returns the size of the file as the actual number of bytes contained in the data
 			// section of the data records found within the hex file.
-			Name:       "binary_size",
+			Name:       "hex.binary_size",
 			ArgTypes:   []object.ObjectType{},
 			MethodFunc: hexBuiltinBinarySize,
 		},
@@ -267,7 +267,7 @@ func init() {
 		// Builtin: elf.has_section(string) -> bool
 		// Returns whether the elf file contains a section with the passed name or not.
 		"has_section": &object.Method{
-			Name:       "has_section",
+			Name:       "elf.has_section",
 			ArgTypes:   []object.ObjectType{object.StringObj},
 			MethodFunc: elfBuiltinHasSection,
 		},
@@ -275,7 +275,7 @@ func init() {
 		// Builtin: elf.sections() -> array
 		// Returns an array containing the section header names as strings.
 		"sections": &object.Method{
-			Name:       "sections",
+			Name:       "elf.sections",
 			ArgTypes:   []object.ObjectType{},
 			MethodFunc: elfBuiltinSections,
 		},
@@ -283,7 +283,7 @@ func init() {
 		// Builtin: elf.section_address(string) -> int
 		// Returns the address of the specified section, if it exists.
 		"section_address": &object.Method{
-			Name:       "section_address",
+			Name:       "elf.section_address",
 			ArgTypes:   []object.ObjectType{object.StringObj},
 			MethodFunc: elfBuiltinSectionAddress,
 		},
@@ -291,7 +291,7 @@ func init() {
 		// Builtin: elf.section_size(string) -> int
 		// Returns the size of the specified section, if it exists.
 		"section_size": &object.Method{
-			Name:       "section_address",
+			Name:       "elf.section_address",
 			ArgTypes:   []object.ObjectType{object.StringObj},
 			MethodFunc: elfBuiltinSectionSize,
 		},
@@ -300,7 +300,7 @@ func init() {
 		// Attempts to read the contents of the specified section, if it exists, and
 		// returns it as a byte array.
 		"read_section": &object.Method{
-			Name:       "read_section",
+			Name:       "elf.read_section",
 			ArgTypes:   []object.ObjectType{object.StringObj},
 			MethodFunc: elfBuiltinReadSection,
 		},
@@ -310,7 +310,7 @@ func init() {
 		// section with arg[2] offset. This mutates the elf file object but not the copy on disk.
 		// Call the save() function to make the changes persistent.
 		"write_section": &object.Method{
-			Name:       "write_section",
+			Name:       "elf.write_section",
 			ArgTypes:   []object.ObjectType{object.StringObj, object.ArrayObj, object.IntegerObj},
 			MethodFunc: elfBuiltinWriteSection,
 		},
@@ -322,7 +322,7 @@ func init() {
 		// This returns an array containing the data that would be found in the
 		// corresponding .bin file obtained from the bytes file as a byte stream.
 		"read_at": &object.Method{
-			Name:       "read_at",
+			Name:       "bytes.read_at",
 			ArgTypes:   []object.ObjectType{object.IntegerObj, object.IntegerObj},
 			MethodFunc: bytesBuiltinReadAt,
 		},
@@ -332,7 +332,7 @@ func init() {
 			// Attempts to write the contents of the arg[1] byte array to the  arg[0]
 			// position. This mutates the bytes file object but not the copy on disk.
 			// Call the save() function to make the changes persistent.
-			Name:       "write_at",
+			Name:       "bytes.write_at",
 			ArgTypes:   []object.ObjectType{object.IntegerObj, object.ArrayObj},
 			MethodFunc: bytesBuiltinWriteAt,
 		},
@@ -819,6 +819,9 @@ func evalMapLiteral(mapLiteral *ast.MapLiteral, env *object.Environment) object.
 
 func evalMethodExpression(methodExpression *ast.MethodCallExpression, env *object.Environment) object.Object {
 	evaluatedCaller := Eval(methodExpression.Caller, env)
+	if isError(evaluatedCaller) {
+		return evaluatedCaller
+	}
 
 	methodName := methodExpression.Called.Function.String()
 	method, exists := builtinMethods[evaluatedCaller.Type()][methodName]

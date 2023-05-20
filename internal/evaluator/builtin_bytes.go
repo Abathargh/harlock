@@ -23,8 +23,7 @@ func bytesBuiltinWriteAt(this object.Object, args ...object.Object) object.Objec
 
 	err := bytesThis.Bytes.WriteAt(int(position.Value), byteArr)
 	if err != nil {
-		return newBytesError("bytes.write_at([%d], %d): %s",
-			len(byteArr), uint64(position.Value), err)
+		return newBytesError("%s", err)
 	}
 	return nil
 }
@@ -40,8 +39,7 @@ func bytesBuiltinReadAt(this object.Object, args ...object.Object) object.Object
 
 	readData, err := bytesThis.Bytes.ReadAt(int(position.Value), int(size.Value))
 	if err != nil {
-		return newBytesError("bytes.read_at(%d, %d): %s",
-			position.Value, size.Value, err)
+		return newBytesError("%s", err)
 	}
 	retVal := &object.Array{Elements: make([]object.Object, len(readData))}
 	for idx, readByte := range readData {

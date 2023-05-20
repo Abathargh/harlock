@@ -131,6 +131,7 @@ const (
 	KeyError     RuntimeErrorType = "Key Error"
 	HexError                      = "Hex Error"
 	ElfError                      = "Elf Error"
+	BytesError                    = "Bytes Error"
 	FileError                     = "File Error"
 	GenericError                  = "Error"
 )
@@ -145,7 +146,7 @@ func (ee *RuntimeError) Type() ObjectType {
 }
 
 func (ee *RuntimeError) Inspect() string {
-	return fmt.Sprintf("%s : %s", ee.Kind, ee.Message)
+	return fmt.Sprintf("%s: %s", ee.Kind, ee.Message)
 }
 
 type Function struct {
