@@ -781,31 +781,14 @@ func TestHexFileBuiltinMethods(t *testing.T) {
 		input    string
 		expected any
 	}{
-		{
-			`var h = open("test.hex", "hex")
-h.record(2)`,
-			":10C21000FFFFF6F50EFE4B66F2FA0CFEF2F40EFE90",
-		},
-		{
-			`var h = open("test.hex", "hex")
-h.size()`,
-			int64(8),
-		},
-		{
-			`var h = open("test.hex", "hex")
-h.binary_size()`,
-			int64(68),
-		},
-		{
-			`var h = open("test.hex", "hex")
-h.read_at(0x1000*16 + 0xC200, 2)`,
-			[]int64{0xE0, 0xA5},
-		},
+		{"open(\"test.hex\", \"hex\").record(2)", ":10C21000FFFFF6F50EFE4B66F2FA0CFEF2F40EFE90"},
+		{"open(\"test.hex\", \"hex\").size()", int64(8)},
+		{"open(\"test.hex\", \"hex\").binary_size()", int64(68)},
+		{"open(\"test.hex\", \"hex\").read_at(0x1000*16 + 0xC200, 2)", []int64{0xE0, 0xA5}},
 		{
 			`var h = open("test.hex", "hex")
 h.write_at(0x2000*16, from_hex("DEADBEEF"))
-h.read_at(0x2000*16, 4)`,
-			[]int64{0xDE, 0xAD, 0xBE, 0xEF},
+h.read_at(0x2000*16, 4)`, []int64{0xDE, 0xAD, 0xBE, 0xEF},
 		},
 	}
 
@@ -852,6 +835,66 @@ h.read_at(0x2000*16, 4)`,
 			if expected != evalInt.Value {
 				t.Fatalf("expected size = %q, got %q", expected, evalInt.Value)
 			}
+		}
+	}
+}
+
+func TestHexFileBuiltinMethodsFailure(t *testing.T) {
+	hexFile := `:020000021000EC
+:10C20000E0A5E6F6FDFFE0AEE00FE6FCFDFFE6FD93
+:10C21000FFFFF6F50EFE4B66F2FA0CFEF2F40EFE90
+:10C22000F04EF05FF06CF07DCA0050C2F086F097DF
+:10C23000F04AF054BCF5204830592D02E018BB03F9
+:020000022000DC
+:04000000FA00000200
+:00000001FF
+`
+
+	testCases := []struct {
+		input    string
+		expected object.ObjectType
+	}{
+		{"open(\"test.hex\", \"hex\").record()", object.ErrorObj},
+		{"open(\"test.hex\", \"hex\").record(\"test\")", object.ErrorObj},
+		{"open(\"test.hex\", \"hex\").record(1, 2)", object.ErrorObj},
+		{"open(\"test.hex\", \"hex\").record(-1)", object.RuntimeErrorObj},
+		{"open(\"test.hex\", \"hex\").record(100000)", object.RuntimeErrorObj},
+
+		{"open(\"test.hex\", \"hex\").size(1)", object.ErrorObj},
+		{"open(\"test.hex\", \"hex\").binary_size(1)", object.ErrorObj},
+
+		{"open(\"test.hex\", \"hex\").read_at()", object.ErrorObj},
+		{"open(\"test.hex\", \"hex\").read_at(1, 2, 3)", object.ErrorObj},
+		{"open(\"test.hex\", \"hex\").read_at(\"test\", 1)", object.ErrorObj},
+		{"open(\"test.hex\", \"hex\").read_at(2, \"test\")", object.ErrorObj},
+		{"open(\"test.hex\", \"hex\").read_at(\"test\", \"test\")", object.ErrorObj},
+		{"open(\"test.hex\", \"hex\").read_at(-1, 1)", object.RuntimeErrorObj},
+		{"open(\"test.hex\", \"hex\").read_at(0, -1)", object.RuntimeErrorObj},
+		{"open(\"test.hex\", \"hex\").read_at(-1, -1)", object.RuntimeErrorObj},
+		{"open(\"test.hex\", \"hex\").read_at(0, 1000000000)", object.RuntimeErrorObj},
+		{"open(\"test.hex\", \"hex\").read_at(10, 1000000000)", object.RuntimeErrorObj},
+
+		{"open(\"test.hex\", \"hex\").write_at()", object.ErrorObj},
+		{"open(\"test.hex\", \"hex\").write_at(1, 2, 3)", object.ErrorObj},
+		{"open(\"test.hex\", \"hex\").write_at(\"test\", 1)", object.ErrorObj},
+		{"open(\"test.hex\", \"hex\").write_at(2, \"test\")", object.ErrorObj},
+		{"open(\"test.hex\", \"hex\").write_at(\"test\", \"test\")", object.ErrorObj},
+		{"open(\"test.hex\", \"hex\").write_at(-1, [1, 2])", object.RuntimeErrorObj},
+		{"open(\"test.hex\", \"hex\").write_at(0, [-1, 2])", object.RuntimeErrorObj},
+		{"open(\"test.hex\", \"hex\").write_at(-1, [1000, 2000])", object.RuntimeErrorObj},
+		{"open(\"test.hex\", \"hex\").write_at(0, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])", object.RuntimeErrorObj},
+		{"open(\"test.hex\", \"hex\").write_at(10, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])", object.RuntimeErrorObj},
+	}
+
+	if err := os.WriteFile("test.hex", []byte(hexFile), 0666); err != nil {
+		t.Fatalf("cannot create the test.hex file")
+	}
+	defer func() { _ = os.Remove("test.hex") }()
+
+	for _, testCase := range testCases {
+		fileExpr := testEval(testCase.input)
+		if fileExpr.Type() != testCase.expected {
+			t.Errorf("%s: expected error of type %s, got %s", testCase.input, testCase.expected, fileExpr.Type())
 		}
 	}
 }
@@ -963,6 +1006,58 @@ func TestElfFileBuiltinMethods(t *testing.T) {
 					t.Fatalf("expected %v, got %s", expected, strElem.Value)
 				}
 			}
+		}
+	}
+}
+
+func TestElfFileBuiltinMethodsFailure(t *testing.T) {
+	testCases := []struct {
+		input    string
+		expected object.ObjectType
+	}{
+		{"open(\"test.elf\", \"elf\").has_section()", object.ErrorObj},
+		{"open(\"test.elf\", \"elf\").has_section(1)", object.ErrorObj},
+		{"open(\"test.elf\", \"elf\").has_section(1, 2)", object.ErrorObj},
+
+		{"open(\"test.elf\", \"elf\").sections(1)", object.ErrorObj},
+
+		{"open(\"test.elf\", \"elf\").section_address()", object.ErrorObj},
+		{"open(\"test.elf\", \"elf\").section_address(1)", object.ErrorObj},
+		{"open(\"test.elf\", \"elf\").section_address(\"test\", 1)", object.ErrorObj},
+		{"open(\"test.elf\", \"elf\").section_address(\"test-not-exist\")", object.RuntimeErrorObj},
+
+		{"open(\"test.elf\", \"elf\").section_size()", object.ErrorObj},
+		{"open(\"test.elf\", \"elf\").section_size(1)", object.ErrorObj},
+		{"open(\"test.elf\", \"elf\").section_size(\"test\", 1)", object.ErrorObj},
+		{"open(\"test.elf\", \"elf\").section_size(\"test-not-exist\")", object.RuntimeErrorObj},
+
+		{"open(\"test.elf\", \"elf\").read_section()", object.ErrorObj},
+		{"open(\"test.elf\", \"elf\").read_section(1)", object.ErrorObj},
+		{"open(\"test.elf\", \"elf\").read_section(\"test-not-exist\", 1)", object.ErrorObj},
+		{"open(\"test.elf\", \"elf\").read_section(1, 2, 3)", object.ErrorObj},
+		{"open(\"test.elf\", \"elf\").read_section(1, 2, 3)", object.ErrorObj},
+		{"open(\"test.elf\", \"elf\").read_section(\"test-not-exist\")", object.RuntimeErrorObj},
+
+		{"open(\"test.elf\", \"elf\").write_section()", object.ErrorObj},
+		{"open(\"test.elf\", \"elf\").write_section(1)", object.ErrorObj},
+		{"open(\"test.elf\", \"elf\").write_section(\"test-not-exist\", 1)", object.ErrorObj},
+		{"open(\"test.elf\", \"elf\").write_section(1, 2, 3)", object.ErrorObj},
+		{"open(\"test.elf\", \"elf\").write_section(1, 2, 3, 4)", object.ErrorObj},
+		{"open(\"test.elf\", \"elf\").write_section(\"test-not-exist\", [1, 2], -1)", object.RuntimeErrorObj},
+		{"open(\"test.elf\", \"elf\").write_section(\"test-not-exist\", [1000, 2], 0)", object.RuntimeErrorObj},
+		{"open(\"test.elf\", \"elf\").write_section(\"test-not-exist\", [1, 2, 3], 0)", object.RuntimeErrorObj},
+		{"open(\"test.elf\", \"elf\").write_section(\".metadata\", [1, 2, 3], 100000000000)", object.RuntimeErrorObj},
+	}
+
+	if err := os.WriteFile("test.elf", elfFile, 0666); err != nil {
+		t.Fatalf("cannot create the test.elf file")
+	}
+	defer func() { _ = os.Remove("test.elf") }()
+
+	for _, testCase := range testCases {
+		fileExpr := testEval(testCase.input)
+		if fileExpr.Type() != testCase.expected {
+			t.Errorf("%s: expected error of type %s, got %s", testCase.input, testCase.expected, fileExpr.Type())
 		}
 	}
 }
