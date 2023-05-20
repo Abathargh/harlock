@@ -978,6 +978,13 @@ func newKeyError(msg string, args ...any) *object.RuntimeError {
 	}
 }
 
+func newFileError(msg string, args ...any) *object.RuntimeError {
+	return &object.RuntimeError{
+		Kind:    object.FileError,
+		Message: fmt.Sprintf(msg, args...),
+	}
+}
+
 func isRuntimeError(obj object.Object) bool {
 	if obj == nil {
 		return false

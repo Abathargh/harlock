@@ -37,6 +37,11 @@ func typeArgsError(builtin object.CallableBuiltin, args []object.Object) *object
 
 	argValues := make([]string, len(args))
 	for idx, obj := range args {
+		if fileObj, isFile := obj.(object.File); isFile {
+			// printing the whole file with Inspect() clutters the err msg
+			argValues[idx] = fileObj.Name()
+			continue
+		}
 		argValues[idx] = strings.ReplaceAll(obj.Inspect(), "\n", " ")
 	}
 
@@ -58,7 +63,7 @@ func typeArgsError(builtin object.CallableBuiltin, args []object.Object) *object
 		argsTypeStr = "no args"
 	}
 	errorStr := fmt.Sprintf(typeErrTemplate, name, len(reqTypes), reqStr, name, argsValueStr, argsTypeStr)
-	return newError(errorStr)
+	return newError(errorStr) // args evaluation error should not be recoverable with try
 }
 
 func execBuiltin(builtin object.CallableBuiltin, args ...object.Object) object.Object {
@@ -264,7 +269,7 @@ func builtinOpen(args ...object.Object) object.Object {
 
 	file, err := os.Open(filename.Value)
 	if err != nil {
-		return newError("could not open file %q", filename.Value)
+		return newFileError("could not open file %q", filename.Value)
 	}
 	defer func() { _ = file.Close() }()
 
@@ -272,7 +277,7 @@ func builtinOpen(args ...object.Object) object.Object {
 	case "bytes":
 		bytesFile, err := bytes.ReadAll(file)
 		if err != nil {
-			return newError("cannot read the contents of the passed file")
+			return newFileError("cannot read the contents of the passed file")
 		}
 		info, _ := file.Stat()
 		return object.NewBytesFile(file.Name(), uint32(info.Mode().Perm()), info.Size(), bytesFile)
@@ -280,7 +285,7 @@ func builtinOpen(args ...object.Object) object.Object {
 	case "hex":
 		hexFile, err := hex.ReadAll(bufio.NewReader(file))
 		if err != nil {
-			return newError("file error - %s", err)
+			return newFileError("%s", err)
 		}
 		info, _ := file.Stat()
 		return object.NewHexFile(file.Name(), uint32(info.Mode().Perm()), hexFile)
@@ -288,13 +293,13 @@ func builtinOpen(args ...object.Object) object.Object {
 	case "elf":
 		elfFile, err := harlockElf.ReadAll(file)
 		if err != nil {
-			return newError("file error - %s", err)
+			return newFileError("%s", err)
 		}
 		info, _ := file.Stat()
 		return object.NewElfFile(file.Name(), uint32(info.Mode().Perm()), elfFile)
 
 	default:
-		return newError("unsupported file type")
+		return newFileError("unsupported file type")
 	}
 }
 
@@ -303,11 +308,11 @@ func builtinSave(args ...object.Object) object.Object {
 	case object.File:
 		err := os.WriteFile(file.Name(), file.AsBytes(), os.FileMode(file.Perms()))
 		if err != nil {
-			return newError("could not save file")
+			return newFileError("could not save the passed file")
 		}
 		return nil
 	default:
-		return newError("must pass a file (hex, elf, bytes)")
+		return newFileError("must pass a file (hex, elf, bytes)")
 	}
 }
 
@@ -321,7 +326,7 @@ func builtinAsBytes(args ...object.Object) object.Object {
 		}
 		return &object.Array{Elements: buf}
 	default:
-		return newError("must pass a file (hex, elf, bytes)")
+		return newFileError("must pass a file (hex, elf, bytes)")
 	}
 }
 
