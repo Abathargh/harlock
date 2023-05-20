@@ -36,7 +36,7 @@ func init() {
 	}
 
 	// Builtin: from_hex(string) -> array
-	// Converts a hex-string with no trailing '0x' to an array of bytes
+	// Converts a hex-string with to an array of bytes
 	builtins["from_hex"] = &object.Builtin{
 		Name:     "from_hex",
 		ArgTypes: []object.ObjectType{object.StringObj},

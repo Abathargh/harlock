@@ -148,6 +148,10 @@ func builtinHex(args ...object.Object) object.Object {
 func builtinFromhex(args ...object.Object) object.Object {
 	hexString := args[0].(*object.String)
 	strVal := hexString.Value
+	if strings.HasPrefix(strVal, "0x") || strings.HasPrefix(strVal, "0X") {
+		strVal = strVal[2:]
+	}
+
 	strLen := len(strVal)
 	if strLen%2 != 0 || strLen == 0 {
 		return newTypeError("wrong size for hex string literal")
