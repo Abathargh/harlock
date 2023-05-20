@@ -7,7 +7,7 @@ func setBuiltinAdd(this object.Object, args ...object.Object) object.Object {
 
 	hashable, isHashable := args[0].(object.Hashable)
 	if !isHashable {
-		return newError("type error: the passed type is not hashable")
+		return newTypeError("the passed type is not hashable")
 	}
 
 	key := hashable.HashKey()
@@ -20,7 +20,7 @@ func setBuiltinRemove(this object.Object, args ...object.Object) object.Object {
 
 	hashable, isHashable := args[0].(object.Hashable)
 	if !isHashable {
-		return newError("type error: the passed type is not hashable")
+		return newTypeError("the passed type is not hashable")
 	}
 
 	key := hashable.HashKey()
