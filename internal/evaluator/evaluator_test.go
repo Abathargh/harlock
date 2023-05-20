@@ -972,18 +972,9 @@ func TestBytesFileBuiltinMethods(t *testing.T) {
 		input    string
 		expected []int64
 	}{
-		{
-			"var b = open(\"test.bin\", \"bytes\")\nb.read_at(0, 5)",
-			[]int64{0, 0, 0, 0, 0},
-		},
-		{
-			"var b = open(\"test.bin\", \"bytes\")\nb.write_at(0, [1, 2, 3])\nb.read_at(0, 5)",
-			[]int64{1, 2, 3, 0, 0},
-		},
-		{
-			"var b = open(\"test.bin\", \"bytes\")\nb.write_at(5, [1, 2, 3])\nb.read_at(5, 5)",
-			[]int64{1, 2, 3, 0, 0},
-		},
+		{"var b = open(\"test.bin\", \"bytes\")\nb.read_at(0, 5)", []int64{0, 0, 0, 0, 0}},
+		{"var b = open(\"test.bin\", \"bytes\")\nb.write_at(0, [1, 2, 3])\nb.read_at(0, 5)", []int64{1, 2, 3, 0, 0}},
+		{"var b = open(\"test.bin\", \"bytes\")\nb.write_at(5, [1, 2, 3])\nb.read_at(5, 5)", []int64{1, 2, 3, 0, 0}},
 	}
 
 	bytesFile := [32]byte{}
@@ -1010,6 +1001,47 @@ func TestBytesFileBuiltinMethods(t *testing.T) {
 			if idx > len(testCase.expected) || intElem.Value != testCase.expected[idx] {
 				t.Fatalf("expected %v, got %d", testCase.expected, intElem.Value)
 			}
+		}
+	}
+}
+
+func TestFailingBytesMethodBuiltins(t *testing.T) {
+	testCases := []struct {
+		input    string
+		expected object.ObjectType
+	}{
+		{"open(\"test.bin\", \"bytes\").read_at()", object.ErrorObj},
+		{"open(\"test.bin\", \"bytes\").read_at(\"test\", \"err\")", object.ErrorObj},
+		{"open(\"test.bin\", \"bytes\").read_at(1, 2, 3)", object.ErrorObj},
+		{"open(\"test.bin\", \"bytes\").read_at(1, 2, 3)", object.ErrorObj},
+		{"open(\"test.bin\", \"bytes\").read_at(-1, 2)", object.RuntimeErrorObj},
+		{"open(\"test.bin\", \"bytes\").read_at(0, 50)", object.RuntimeErrorObj},
+		{"open(\"test.bin\", \"bytes\").read_at(30, 10)", object.RuntimeErrorObj},
+
+		{"open(\"test.bin\", \"bytes\").write_at()", object.ErrorObj},
+		{"open(\"test.bin\", \"bytes\").write_at(1, 2)", object.ErrorObj},
+		{"open(\"test.bin\", \"bytes\").write_at(1, \"test\")", object.ErrorObj},
+		{"open(\"test.bin\", \"bytes\").write_at(1, 2, 3)", object.ErrorObj},
+		{"open(\"test.bin\", \"bytes\").write_at(1, [1, 2, 3], \"test\")", object.ErrorObj},
+		{"open(\"test.bin\", \"bytes\").write_at(-1, [1, 2, 3])", object.RuntimeErrorObj},
+		{"open(\"test.bin\", \"bytes\").write_at(0, [2000, 1220, 3])", object.RuntimeErrorObj},
+		{"open(\"test.bin\", \"bytes\").write_at(0, [-2, 1, 3])", object.RuntimeErrorObj},
+		{"open(\"test.bin\", \"bytes\").write_at(0, [\"test\", 1, 3])", object.RuntimeErrorObj},
+		{"open(\"test.bin\", \"bytes\").write_at(0, [0, 0, 0, 0, 0, 0, 0, 0, 0])", object.RuntimeErrorObj},
+		{"open(\"test.bin\", \"bytes\").write_at(7, [0, 0, 0])", object.RuntimeErrorObj},
+	}
+
+	bytesFile := [8]byte{}
+
+	if err := os.WriteFile("test.bin", bytesFile[:], 0666); err != nil {
+		t.Fatalf("cannot create the test.bin file")
+	}
+	defer func() { _ = os.Remove("test.bin") }()
+
+	for _, testCase := range testCases {
+		fileExpr := testEval(testCase.input)
+		if fileExpr.Type() != testCase.expected {
+			t.Errorf("%s: expected error of type %s, got %s", testCase.input, testCase.expected, fileExpr.Type())
 		}
 	}
 }
