@@ -776,8 +776,10 @@ func evalIndexExpression(indexed, index object.Object, line int) object.Object {
 		return evalArrayIndexExpression(indexed, index, line)
 	case indexed.Type() == object.MapObj:
 		return evalMapIndexExpression(indexed, index, line)
-	default:
+	case indexed.Type() == object.ArrayObj && index.Type() != object.IntegerObj:
 		return newError("attempting to use a non-integer as an array index on line %d", line)
+	default:
+		return newError("attempting to index a non-subscriptable object (%s) on line %d", indexed.Type(), line)
 	}
 }
 
@@ -865,9 +867,9 @@ func callFunction(funcName string, funcObj object.Object, args []object.Object, 
 		nameOnly := funcName[:strings.Index(funcName, "(")]
 		return newError("function %q was called with a wrong number of args on line %d", nameOnly, line)
 	case *object.Builtin:
-		return execBuiltin(function, args...)
+		return execBuiltin(function, line, args...)
 	case *object.Method:
-		return execBuiltin(function, args...)
+		return execBuiltin(function, line, args...)
 	default:
 		return newError("'%s' identifier is not a function on line %d", funcObj.Type(), line)
 	}

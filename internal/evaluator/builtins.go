@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	typeErrTemplate = "'%s' requires %d parameter(s) (%s), got %s(%s) (%s)"
-	typeErrNoArgs   = "'%s' - %s"
+	typeErrTemplate = "'%s' requires %d parameter(s) (%s), got %s(%s) (%s) on line %d"
+	typeErrNoArgs   = "'%s' - %s on line %d"
 )
 
 func checkType(expected, actual object.ObjectType) bool {
@@ -31,14 +31,14 @@ func checkType(expected, actual object.ObjectType) bool {
 	return false
 }
 
-func typeArgsError(builtin object.CallableBuiltin, args []object.Object) *object.Error {
+func typeArgsError(builtin object.CallableBuiltin, line int, args []object.Object) *object.Error {
 	name := builtin.GetBuiltinName()
 	reqTypes := builtin.GetBuiltinArgTypes()
 
 	argValues := make([]string, len(args))
 	for idx, obj := range args {
 		if fileObj, isFile := obj.(object.File); isFile {
-			// printing the whole file with Inspect() clutters the err msg
+			// printing the whole file with Inspect() clutters the error msg
 			argValues[idx] = fileObj.Name()
 			continue
 		}
@@ -62,11 +62,11 @@ func typeArgsError(builtin object.CallableBuiltin, args []object.Object) *object
 	if len(argsTypeStr) == 0 {
 		argsTypeStr = "no args"
 	}
-	errorStr := fmt.Sprintf(typeErrTemplate, name, len(reqTypes), reqStr, name, argsValueStr, argsTypeStr)
+	errorStr := fmt.Sprintf(typeErrTemplate, name, len(reqTypes), reqStr, name, argsValueStr, argsTypeStr, line)
 	return newError(errorStr) // args evaluation error should not be recoverable with try
 }
 
-func execBuiltin(builtin object.CallableBuiltin, args ...object.Object) object.Object {
+func execBuiltin(builtin object.CallableBuiltin, line int, args ...object.Object) object.Object {
 	name := builtin.GetBuiltinName()
 	argTypes := builtin.GetBuiltinArgTypes()
 
@@ -96,11 +96,11 @@ func execBuiltin(builtin object.CallableBuiltin, args ...object.Object) object.O
 	switch argcExpectedCount {
 	case 0:
 		if argcExpected != argc {
-			return typeArgsError(builtin, argsToValidate)
+			return typeArgsError(builtin, line, argsToValidate)
 		}
 	default:
 		if argc < argcExpected-argcExpectedCount || argc > argcExpected {
-			return typeArgsError(builtin, argsToValidate)
+			return typeArgsError(builtin, line, argsToValidate)
 		}
 	}
 
@@ -110,7 +110,7 @@ func execBuiltin(builtin object.CallableBuiltin, args ...object.Object) object.O
 		}
 
 		if !checkType(argExpected, argsToValidate[idx].Type()) {
-			return typeArgsError(builtin, argsToValidate)
+			return typeArgsError(builtin, line, argsToValidate)
 		}
 	}
 
@@ -118,7 +118,7 @@ exec:
 	outcome := builtin.Call(args...)
 	switch typedOutcome := outcome.(type) {
 	case *object.RuntimeError:
-		return newTypeError(typeErrNoArgs, name, typedOutcome.Message)
+		return newTypeError(typeErrNoArgs, name, typedOutcome.Message, line)
 	default:
 		return outcome
 	}
