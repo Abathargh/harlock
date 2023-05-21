@@ -337,7 +337,7 @@ func TestBuiltinFunctions(t *testing.T) {
 		{`len(set(1, 4, 7, 11))`, 4},
 		{`len(0)`, object.ErrorObj},
 		{`set("ciao", 1, 2, 3)`, object.SetObj},
-		{`set(set(1))`, object.RuntimeErrorObj},
+		{`set(set(1))`, object.SetObj},
 		{`type("ciao")`, object.StringObj},
 		{`type(1)`, object.StringObj},
 		{`type(1/0)`, object.ErrorObj},

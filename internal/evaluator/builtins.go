@@ -225,6 +225,10 @@ func builtinSet(args ...object.Object) object.Object {
 			for key, pair := range seq.Mappings {
 				set.Elements[key] = pair.Key
 			}
+		case *object.Set:
+			for key, elem := range seq.Elements {
+				set.Elements[key] = elem
+			}
 		default:
 			hashableElem, isHashable := seq.(object.Hashable)
 			if !isHashable {
