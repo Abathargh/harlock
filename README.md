@@ -5,20 +5,11 @@ data embedding in executables, mainly usable as a scripting language for
 binaries post-processing. It is based around the ideas discussed 
 in the *Writing An Interpreter In Go* book by Thorsten Ball.
 
-- [Harlock](#harlock)
-  - [Documentation](#documentation)
-  - [Download](#download)
-  - [Build](#build)
-  - [Usage](#usage)
-    - [Run a script](#run-a-script)
-    - [Start the REPL](#start-the-repl)
-    - [Embed a script](#embed-a-script)
-  - [License](#license)
-
 ## Documentation
 
 To get started on how to use harlock for your builds or as a standalone tools, please refer to the 
 [harlock wiki](https://github.com/Abathargh/harlock/wiki)!
+
 ## Download
 
 You can download the latest pre-built binaries for your architecture/os from 
@@ -56,7 +47,7 @@ harlock script.hlk
 
 ```bash
 harlock
-Harlock v0.0.0 - amd64 on windows
+Harlock v0.4.1 - amd64 on linux
 >>> var hello = "Hello World!"
 >>> print(hello)
 Hello World!
