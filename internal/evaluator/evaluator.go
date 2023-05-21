@@ -225,38 +225,38 @@ func init() {
 			MethodFunc: hexBuiltinRecord,
 		},
 
+		// Builtin: hex.size(int) -> int
+		// Returns the size of the file as a number of records it contains.
 		"size": &object.Method{
-			// Builtin: hex.size(int) -> int
-			// Returns the size of the file as a number of records it contains.
 			Name:       "hex.size",
 			ArgTypes:   []object.ObjectType{},
 			MethodFunc: hexBuiltinSize,
 		},
 
+		// Builtin: hex.read_at(int, int) -> array
+		// Attempts to read arg[1] number of bytes starting from arg[0] position.
+		// This returns an array containing the data that would be found in the
+		// corresponding .bin file obtained from the hex file as a byte stream.
 		"read_at": &object.Method{
-			// Builtin: hex.read_at(int, int) -> array
-			// Attempts to read arg[1] number of bytes starting from arg[0] position.
-			// This returns an array containing the data that would be found in the
-			// corresponding .bin file obtained from the hex file as a byte stream.
 			Name:       "hex.read_at",
 			ArgTypes:   []object.ObjectType{object.IntegerObj, object.IntegerObj},
 			MethodFunc: hexBuiltinReadAt,
 		},
 
+		// Builtin: hex.write_at(int, array) -> no return
+		// Attempts to write the contents of the arg[1] byte array to the  arg[0]
+		// position. This mutates the hex file object but not the copy on disk.
+		// Call the save() function to make the changes persistent.
 		"write_at": &object.Method{
-			// Builtin: hex.write_at(int, array) -> no return
-			// Attempts to write the contents of the arg[1] byte array to the  arg[0]
-			// position. This mutates the hex file object but not the copy on disk.
-			// Call the save() function to make the changes persistent.
 			Name:       "hex.write_at",
 			ArgTypes:   []object.ObjectType{object.IntegerObj, object.ArrayObj},
 			MethodFunc: hexBuiltinWriteAt,
 		},
 
+		// Builtin: hex.binary_size(int) -> int
+		// Returns the size of the file as the actual number of bytes contained in the data
+		// section of the data records found within the hex file.
 		"binary_size": &object.Method{
-			// Builtin: hex.binary_size(int) -> int
-			// Returns the size of the file as the actual number of bytes contained in the data
-			// section of the data records found within the hex file.
 			Name:       "hex.binary_size",
 			ArgTypes:   []object.ObjectType{},
 			MethodFunc: hexBuiltinBinarySize,
@@ -327,11 +327,11 @@ func init() {
 			MethodFunc: bytesBuiltinReadAt,
 		},
 
+		// Builtin: bytes.write_at(int, array) -> no return
+		// Attempts to write the contents of the arg[1] byte array to the  arg[0]
+		// position. This mutates the bytes file object but not the copy on disk.
+		// Call the save() function to make the changes persistent.
 		"write_at": &object.Method{
-			// Builtin: bytes.write_at(int, array) -> no return
-			// Attempts to write the contents of the arg[1] byte array to the  arg[0]
-			// position. This mutates the bytes file object but not the copy on disk.
-			// Call the save() function to make the changes persistent.
 			Name:       "bytes.write_at",
 			ArgTypes:   []object.ObjectType{object.IntegerObj, object.ArrayObj},
 			MethodFunc: bytesBuiltinWriteAt,
