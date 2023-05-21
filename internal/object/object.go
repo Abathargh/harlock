@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/Abathargh/harlock/internal/evaluator/bytes"
 	"github.com/Abathargh/harlock/internal/evaluator/elf"
-	"github.com/Abathargh/harlock/internal/evaluator/hex"
+	"github.com/Abathargh/harlock/pkg/hex"
 	"hash/fnv"
 	"strconv"
 	"strings"
