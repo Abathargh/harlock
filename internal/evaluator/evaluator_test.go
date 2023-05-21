@@ -43,7 +43,7 @@ func TestEvalIntegerExpression(t *testing.T) {
 
 	for _, testCase := range tests {
 		evaluatedObj := testEval(testCase.input)
-		testIntegerObject(t, evaluatedObj, testCase.expectedValue)
+		testIntegerObject(t, testCase.input, evaluatedObj, testCase.expectedValue)
 	}
 }
 
@@ -134,7 +134,7 @@ func TestIfElseExpression(t *testing.T) {
 		evaluatedIfExpression := testEval(testCase.input)
 		expectedInt, ok := testCase.expected.(int)
 		if ok {
-			testIntegerObject(t, evaluatedIfExpression, int64(expectedInt))
+			testIntegerObject(t, testCase.input, evaluatedIfExpression, int64(expectedInt))
 		} else {
 			testNullObject(t, evaluatedIfExpression)
 		}
@@ -162,7 +162,7 @@ if 10 > 1 {
 
 	for _, testCase := range tests {
 		evaluatedReturn := testEval(testCase.input)
-		testIntegerObject(t, evaluatedReturn, testCase.expectedReturnValue)
+		testIntegerObject(t, testCase.input, evaluatedReturn, testCase.expectedReturnValue)
 	}
 }
 
@@ -207,7 +207,7 @@ func TestVarStatement(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testIntegerObject(t, testEval(testCase.input), testCase.expectedValue)
+		testIntegerObject(t, testCase.input, testEval(testCase.input), testCase.expectedValue)
 	}
 }
 
@@ -248,7 +248,7 @@ func TestFunction(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testIntegerObject(t, testEval(testCase.input), testCase.expectedOutput)
+		testIntegerObject(t, testCase.input, testEval(testCase.input), testCase.expectedOutput)
 	}
 }
 
@@ -316,6 +316,13 @@ func TestBuiltinFunctions(t *testing.T) {
 		input    string
 		expected any
 	}{
+		{`int("1234")`, 1234},
+		{`int("0x12")`, 0x12},
+		{`int("0X12")`, 0x12},
+		{`int("1", "2")`, object.ErrorObj},
+		{`int(1)`, object.ErrorObj},
+		{`int([1, 2])`, object.ErrorObj},
+		{`int("test")`, object.RuntimeErrorObj},
 		{`hex(255)`, "0xff"},
 		{`hex()`, object.ErrorObj},
 		{`hex([0x01, 0x04, 0xfa, 0xcb])`, "0104facb"},
@@ -349,13 +356,18 @@ func TestBuiltinFunctions(t *testing.T) {
 		{`contains(set(5, 8, 22), 22)`, true},
 		{`contains(set(5, 8, 22), 42)`, false},
 		{`contains(0, 42)`, object.ErrorObj},
+		{`error("test ok")`, object.RuntimeErrorObj},
+		{`error("test ok", 1)`, object.RuntimeErrorObj},
+		{`error("test ok", 1, 2)`, object.RuntimeErrorObj},
+		{`error("test ok", 1, [1, 2])`, object.RuntimeErrorObj},
+		{`error("test ok", 1, [1, 2], set(1, 2, 3))`, object.RuntimeErrorObj},
 	}
 
 	for _, testCase := range tests {
 		evalBuiltin := testEval(testCase.input)
 		switch expected := testCase.expected.(type) {
 		case int:
-			testIntegerObject(t, evalBuiltin, int64(expected))
+			testIntegerObject(t, testCase.input, evalBuiltin, int64(expected))
 		case bool:
 			testBooleanObject(t, evalBuiltin, expected)
 		case string:
@@ -442,9 +454,9 @@ func TestArrayLiterals(t *testing.T) {
 		t.Fatalf("expected 3 elements, got %d", len(arrayLiteral.Elements))
 	}
 
-	testIntegerObject(t, arrayLiteral.Elements[0], 5)
-	testIntegerObject(t, arrayLiteral.Elements[1], 1)
-	testIntegerObject(t, arrayLiteral.Elements[2], 2)
+	testIntegerObject(t, input, arrayLiteral.Elements[0], 5)
+	testIntegerObject(t, input, arrayLiteral.Elements[1], 1)
+	testIntegerObject(t, input, arrayLiteral.Elements[2], 2)
 }
 
 func TestArrayIndexExpressions(t *testing.T) {
@@ -474,7 +486,7 @@ func TestArrayIndexExpressions(t *testing.T) {
 				t.Errorf("expected object of type %s, got %s", expected, arrayIndexExpr.Type())
 			}
 		case int:
-			testIntegerObject(t, arrayIndexExpr, int64(expected))
+			testIntegerObject(t, testCase.input, arrayIndexExpr, int64(expected))
 		}
 	}
 }
@@ -658,7 +670,7 @@ func TestMapLiterals(t *testing.T) {
 		if !ok {
 			t.Errorf("expected key %+v to be present in the map", expKey)
 		}
-		testIntegerObject(t, mapping.Value, expVal)
+		testIntegerObject(t, input, mapping.Value, expVal)
 	}
 }
 
@@ -682,7 +694,7 @@ func TestMapIndexExpressions(t *testing.T) {
 				t.Errorf("expected object of type %s, got %s", expected, arrayIndexExpr.Type())
 			}
 		case int:
-			testIntegerObject(t, arrayIndexExpr, int64(expected))
+			testIntegerObject(t, testCase.input, arrayIndexExpr, int64(expected))
 
 		}
 	}
@@ -720,7 +732,7 @@ func TestArrayBuiltinMethods(t *testing.T) {
 		evalArrayBuiltin := testEval(testCase.input)
 		switch expected := testCase.expected.(type) {
 		case []int64:
-			if !testArrayObject(t, evalArrayBuiltin, expected) {
+			if !testArrayObject(t, testCase.input, evalArrayBuiltin, expected) {
 				fmt.Printf("input: %s", testCase.input)
 			}
 		case []string:
@@ -743,7 +755,7 @@ func TestMapBuiltinMethods(t *testing.T) {
 
 	for _, testCase := range tests {
 		evalMapBuiltin := testEval(testCase.input)
-		testMapObject(t, evalMapBuiltin, testCase.expected)
+		testMapObject(t, testCase.input, evalMapBuiltin, testCase.expected)
 	}
 }
 
@@ -1158,7 +1170,7 @@ func TestArrayInfixMethods(t *testing.T) {
 		evalSetBuiltin := testEval(testCase.input)
 		switch expected := testCase.expected.(type) {
 		case []int64:
-			testArrayObject(t, evalSetBuiltin, expected)
+			testArrayObject(t, testCase.input, evalSetBuiltin, expected)
 		case bool:
 			testBooleanObject(t, evalSetBuiltin, expected)
 		}
@@ -1204,7 +1216,7 @@ func TestSetInfixOperations(t *testing.T) {
 		evalSetBuiltin := testEval(testCase.input)
 		switch expected := testCase.expected.(type) {
 		case []int64:
-			testSetObject(t, evalSetBuiltin, expected)
+			testSetObject(t, testCase.input, evalSetBuiltin, expected)
 		case bool:
 			testBooleanObject(t, evalSetBuiltin, expected)
 		}
@@ -1224,7 +1236,7 @@ func TestSetBuiltinMethods(t *testing.T) {
 
 	for _, testCase := range tests {
 		evalSetBuiltin := testEval(testCase.input)
-		testSetObject(t, evalSetBuiltin, testCase.expected)
+		testSetObject(t, testCase.input, evalSetBuiltin, testCase.expected)
 	}
 }
 
@@ -1263,7 +1275,7 @@ func TestTryExpression(t *testing.T) {
 		evalTryExpression := testEval(testCase.input)
 		switch expected := testCase.expected.(type) {
 		case int:
-			testIntegerObject(t, evalTryExpression, int64(expected))
+			testIntegerObject(t, testCase.input, evalTryExpression, int64(expected))
 		case object.ObjectType:
 			if evalTryExpression.Type() != expected {
 				errExpr, isErr := evalTryExpression.(*object.Error)
@@ -1287,15 +1299,18 @@ func testEval(input string) object.Object {
 	return Eval(program, env)
 }
 
-func testIntegerObject(t *testing.T, obj object.Object, expected int64) bool {
+func testIntegerObject(t *testing.T, input string, obj object.Object, expected int64) bool {
 	integerObj, ok := obj.(*object.Integer)
 	if !ok {
-		t.Errorf("expected object to be an Integer (%d), got %T", expected, obj)
+		if isError(obj) || isRuntimeError(obj) {
+			t.Errorf("%T: %s", obj, obj.Inspect())
+		}
+		t.Errorf("%s: expected object to be an Integer (%d), got %T", input, expected, obj)
 		return false
 	}
 
 	if integerObj.Value != expected {
-		t.Errorf("expected %d, got %d", expected, integerObj.Value)
+		t.Errorf("%s: expected %d, got %d", input, expected, integerObj.Value)
 		return false
 	}
 	return true
@@ -1315,7 +1330,7 @@ func testStringObject(t *testing.T, obj object.Object, expected string) bool {
 	return true
 }
 
-func testArrayObject(t *testing.T, obj object.Object, expected []int64) bool {
+func testArrayObject(t *testing.T, input string, obj object.Object, expected []int64) bool {
 	arrayObj, ok := obj.(*object.Array)
 	if !ok {
 		t.Errorf("expected object to be an Array, got %T", obj)
@@ -1328,7 +1343,7 @@ func testArrayObject(t *testing.T, obj object.Object, expected []int64) bool {
 	}
 
 	for idx, element := range arrayObj.Elements {
-		if !testIntegerObject(t, element, expected[idx]) {
+		if !testIntegerObject(t, input, element, expected[idx]) {
 			return false
 		}
 	}
@@ -1355,7 +1370,7 @@ func testStringArrayObject(t *testing.T, obj object.Object, expected []string) b
 	return true
 }
 
-func testMapObject(t *testing.T, obj object.Object, expected [][]int64) bool {
+func testMapObject(t *testing.T, input string, obj object.Object, expected [][]int64) bool {
 	mapObj, ok := obj.(*object.Map)
 	if !ok {
 		t.Errorf("expected object to be an Map, got %T", obj)
@@ -1378,13 +1393,13 @@ func testMapObject(t *testing.T, obj object.Object, expected [][]int64) bool {
 			return false
 		}
 
-		if !testIntegerObject(t, keyVal.Value, pair[1]) {
+		if !testIntegerObject(t, input, keyVal.Value, pair[1]) {
 			return false
 		}
 	}
 	return true
 }
-func testSetObject(t *testing.T, obj object.Object, expected []int64) bool {
+func testSetObject(t *testing.T, input string, obj object.Object, expected []int64) bool {
 	mapObj, ok := obj.(*object.Set)
 	if !ok {
 		t.Errorf("expected object to be an Set, got %T", obj)
@@ -1407,7 +1422,7 @@ func testSetObject(t *testing.T, obj object.Object, expected []int64) bool {
 			return false
 		}
 
-		if !testIntegerObject(t, elem, expElem) {
+		if !testIntegerObject(t, input, elem, expElem) {
 			return false
 		}
 	}
