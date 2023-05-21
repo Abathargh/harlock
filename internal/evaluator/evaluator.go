@@ -493,12 +493,26 @@ func evalBlockStatement(blockStatement *ast.BlockStatement, env *object.Environm
 	var result object.Object
 	for _, statement := range blockStatement.Statements {
 		result = Eval(statement, env)
-		if result != nil &&
-			(result.Type() == object.ReturnValueObj || result.Type() == object.RuntimeErrorObj) {
+		if isReturnValOrError(result) {
 			return result
 		}
 	}
 	return result
+}
+
+func isReturnValOrError(obj object.Object) bool {
+	switch {
+	case obj == nil:
+		return false
+	case obj.Type() == object.ReturnValueObj:
+		fallthrough
+	case obj.Type() == object.ErrorObj:
+		fallthrough
+	case obj.Type() == object.RuntimeErrorObj:
+		return true
+	default:
+		return false
+	}
 }
 
 func evalIfExpression(expression *ast.IfExpression, env *object.Environment) object.Object {
