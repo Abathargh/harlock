@@ -127,13 +127,13 @@ func (e *Error) Inspect() string {
 type RuntimeErrorType string
 
 const (
-	TypeError    RuntimeErrorType = "Type Error"
-	KeyError     RuntimeErrorType = "Key Error"
-	HexError                      = "Hex Error"
-	ElfError                      = "Elf Error"
-	BytesError                    = "Bytes Error"
-	FileError                     = "File Error"
-	GenericError                  = "Error"
+	TypeError   RuntimeErrorType = "Type Error"
+	KeyError    RuntimeErrorType = "Key Error"
+	HexError                     = "Hex Error"
+	ElfError                     = "Elf Error"
+	BytesError                   = "Bytes Error"
+	FileError                    = "File Error"
+	CustomError                  = "Runtime Error"
 )
 
 type RuntimeError struct {

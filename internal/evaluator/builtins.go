@@ -17,8 +17,10 @@ import (
 )
 
 const (
-	typeErrTemplate = "'%s' requires %d parameter(s) (%s), got %s(%s) (%s) on line %d"
-	typeErrNoArgs   = "'%s' - %s on line %d"
+	builtinErrorName = "error"
+	typeErrTemplate  = "'%s' requires %d parameter(s) (%s), got %s(%s) (%s) on line %d"
+	typeErrNoArgs    = "'%s' - %s on line %d"
+	runtimeErrNoArgs = "%s on line %d"
 )
 
 func checkType(expected, actual object.ObjectType) bool {
@@ -118,7 +120,12 @@ exec:
 	outcome := builtin.Call(args...)
 	switch typedOutcome := outcome.(type) {
 	case *object.RuntimeError:
-		return newTypeError(typeErrNoArgs, name, typedOutcome.Message, line)
+		if name == builtinErrorName { // hard-coded case for the builtin error() function
+			typedOutcome.Message = fmt.Sprintf(runtimeErrNoArgs, typedOutcome.Message, line)
+		} else {
+			typedOutcome.Message = fmt.Sprintf(typeErrNoArgs, name, typedOutcome.Message, line)
+		}
+		return typedOutcome
 	default:
 		return outcome
 	}
@@ -357,6 +364,28 @@ func builtinHash(args ...object.Object) object.Object {
 	default:
 		return newError("unsupported hash function %s", hashFunc.Value)
 	}
+}
+
+func builtinInt(args ...object.Object) object.Object {
+	str := args[0].(*object.String)
+	converted, err := strconv.ParseInt(str.Value, 0, 64)
+	if err != nil {
+		return newTypeError("expecting a string representation of an integer, got %s", str.Value)
+	}
+	return &object.Integer{
+		Value: converted,
+	}
+}
+
+func builtinError(args ...object.Object) object.Object {
+	var ifcArgs []any
+	for _, arg := range args {
+		if arg != nil {
+			ifcArgs = append(ifcArgs, arg.Inspect())
+		}
+	}
+	errorMsg := fmt.Sprint(ifcArgs...)
+	return newCustomError(errorMsg)
 }
 
 func intArrayToBytes(src *object.Array, dst []byte) *object.RuntimeError {

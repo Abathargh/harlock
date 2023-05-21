@@ -90,7 +90,7 @@ func init() {
 		Function: builtinSave,
 	}
 
-	// Builtin: print(...) -> no return
+	// Builtin: print(...any) -> no return
 	// Prints every passed object as a string separated by a space, with
 	// a newline character at the end.
 	builtins["print"] = &object.Builtin{
@@ -127,6 +127,22 @@ func init() {
 		Name:     "hash",
 		ArgTypes: []object.ObjectType{object.ArrayObj, object.StringObj},
 		Function: builtinHash,
+	}
+
+	// Builtin: int(string) -> int
+	// Converts a string representing an integer to an actual integer.
+	builtins["int"] = &object.Builtin{
+		Name:     "int",
+		ArgTypes: []object.ObjectType{object.StringObj},
+		Function: builtinInt,
+	}
+
+	// Builtin: error(...any) -> error
+	// Creates a custom error that can be used in code.
+	builtins["error"] = &object.Builtin{
+		Name:     "error",
+		ArgTypes: []object.ObjectType{object.AnyVarargs},
+		Function: builtinError,
 	}
 
 	builtinMethods = make(map[object.ObjectType]MethodMapping)
@@ -1021,6 +1037,13 @@ func newElfError(msg string, args ...any) *object.RuntimeError {
 func newBytesError(msg string, args ...any) *object.RuntimeError {
 	return &object.RuntimeError{
 		Kind:    object.BytesError,
+		Message: fmt.Sprintf(msg, args...),
+	}
+}
+
+func newCustomError(msg string, args ...any) *object.RuntimeError {
+	return &object.RuntimeError{
+		Kind:    object.CustomError,
 		Message: fmt.Sprintf(msg, args...),
 	}
 }
