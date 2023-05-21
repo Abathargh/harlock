@@ -1,6 +1,8 @@
 package interpreter
 
 import (
+	"errors"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -38,7 +40,7 @@ errs := interpreter.Exec(bytes.NewBufferString(fileContent), os.Stdout, os.Args.
 func Embed(filename string) error {
 	program, err := buildEmbeddedProgram(filename)
 	if err != nil {
-		return err
+		return embedError(err)
 	}
 	_ = os.Mkdir("./temp", 0775)
 	_ = os.WriteFile("./temp/main.go", []byte(program), 0775)
@@ -46,17 +48,17 @@ func Embed(filename string) error {
 
 	modCmd := command("go", "mod", "init", "embedded_harlock")
 	if err := modCmd.Run(); err != nil {
-		return err
+		return embedError(err)
 	}
 
 	tidyCmd := command("go", "mod", "tidy")
 	if err := tidyCmd.Run(); err != nil {
-		return err
+		return embedError(err)
 	}
 
 	buildCmd := command("go", "build", "-ldflags", "-s", "-ldflags", "-w")
 	if err := buildCmd.Run(); err != nil {
-		return err
+		return embedError(err)
 	}
 
 	tmpName := "./temp/embedded_harlock"
@@ -67,7 +69,7 @@ func Embed(filename string) error {
 	}
 
 	if err := moveFile(tmpName, execName); err != nil {
-		return err
+		return embedError(err)
 	}
 	return nil
 }
@@ -78,6 +80,14 @@ func buildEmbeddedProgram(filename string) (string, error) {
 		return "", err
 	}
 	return headerTemplate + "`" + string(fileContents) + "`" + footerTemplate, nil
+}
+
+func embedError(err error) error {
+	msg := err.Error()
+	if strings.HasPrefix(msg, "exec: ") {
+		err = errors.New(msg[len("exec: "):])
+	}
+	return fmt.Errorf("embed error: could not generate an harlock binary (%w)", err)
 }
 
 func command(c string, args ...string) *exec.Cmd {
