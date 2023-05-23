@@ -405,7 +405,10 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 			return NULL
 		}
 		if varValue.Type() == object.ReturnValueObj {
-			return unwrapReturnValue(varValue)
+			unwrapped := unwrapReturnValue(varValue)
+			if unwrapped.Type() == object.RuntimeErrorObj {
+				return varValue
+			}
 		}
 		env.Set(currentNode.Name.Value, varValue)
 	case *ast.NoOp:

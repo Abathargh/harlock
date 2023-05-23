@@ -49,10 +49,17 @@ func Exec(r io.Reader, stderr io.Writer, args ...string) []string {
 
 	evaluatedProg := evaluator.Eval(program, env)
 	if evaluatedProg != nil {
-		if _, ok := evaluatedProg.(*object.Error); ok {
-			_, _ = io.WriteString(stderr, evaluatedProg.Inspect())
-			_, _ = io.WriteString(stderr, "\n")
+		switch evaluatedProg.(type) {
+		case *object.RuntimeError:
+			dumpToStream(stderr, evaluatedProg)
+		case *object.Error:
+			dumpToStream(stderr, evaluatedProg)
 		}
 	}
 	return nil
+}
+
+func dumpToStream(stderr io.Writer, evaluatedProg object.Object) {
+	_, _ = io.WriteString(stderr, evaluatedProg.Inspect())
+	_, _ = io.WriteString(stderr, "\n")
 }

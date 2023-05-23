@@ -1265,6 +1265,7 @@ func TestTryExpression(t *testing.T) {
 		expected any
 	}{
 		{"var a = try 1\na", 1},
+		{`var a = try from_hex("jkjk")`, object.RuntimeErrorObj},
 		{"var a = fun() { ret try 12 }\na()", 12},
 		{"var a = fun() { ret try 1/0 }\na()", object.ErrorObj},
 		{"var m = {\"test\": \"val\"}\nvar a = fun(m) { ret try m[\"err\"] }\na(m)", object.RuntimeErrorObj},
