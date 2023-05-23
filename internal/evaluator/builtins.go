@@ -11,6 +11,7 @@ import (
 	harlockElf "github.com/Abathargh/harlock/internal/evaluator/elf"
 	"github.com/Abathargh/harlock/internal/evaluator/hex"
 	"github.com/Abathargh/harlock/internal/object"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -390,6 +391,41 @@ func builtinError(args ...object.Object) object.Object {
 	}
 	errorMsg := fmt.Sprint(ifcArgs...)
 	return newCustomError(errorMsg)
+}
+
+func builtinAsArray(args ...object.Object) object.Object {
+	intObj := args[0].(*object.Integer)
+	sizeObj := args[1].(*object.Integer)
+	endianObj := args[2].(*object.String)
+
+	intVal := intObj.Value
+	sizeVal := sizeObj.Value
+
+	if sizeVal <= 0 || sizeVal > 8 {
+		return newTypeError("cannot represent integers wider than 8 bytes or less than 1 byte")
+	}
+
+	if uint64(intVal) >= uint64(math.Pow(2, float64(8*sizeVal))) {
+		return newTypeError("cannot represent %d with %d bytes", intVal, sizeVal)
+	}
+
+	retArr := &object.Array{
+		Elements: make([]object.Object, sizeVal),
+	}
+
+	switch endianObj.Value {
+	case "little":
+		for i := int64(0); i < sizeVal; i++ {
+			retArr.Elements[i] = &object.Integer{Value: (intVal >> (8 * i)) & 0xff}
+		}
+	case "big":
+		for i := int64(0); i < sizeVal; i++ {
+			retArr.Elements[sizeVal-i-1] = &object.Integer{Value: (intVal >> (8 * i)) & 0xff}
+		}
+	default:
+		return newTypeError("invalid endianness %q", endianObj.Value)
+	}
+	return retArr
 }
 
 func intArrayToBytes(src *object.Array, dst []byte) *object.RuntimeError {
