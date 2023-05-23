@@ -361,6 +361,45 @@ func TestBuiltinFunctions(t *testing.T) {
 		{`error("test ok", 1, 2)`, object.RuntimeErrorObj},
 		{`error("test ok", 1, [1, 2])`, object.RuntimeErrorObj},
 		{`error("test ok", 1, [1, 2], set(1, 2, 3))`, object.RuntimeErrorObj},
+		{`as_array(10, 1, "little")`, []int64{10}},
+		{`as_array(10, 2, "little")`, []int64{10, 0}},
+		{`as_array(10, 3, "little")`, []int64{10, 0, 0}},
+		{`as_array(10, 4, "little")`, []int64{10, 0, 0, 0}},
+		{`as_array(10, 5, "little")`, []int64{10, 0, 0, 0, 0}},
+		{`as_array(10, 6, "little")`, []int64{10, 0, 0, 0, 0, 0}},
+		{`as_array(10, 7, "little")`, []int64{10, 0, 0, 0, 0, 0, 0}},
+		{`as_array(10, 8, "little")`, []int64{10, 0, 0, 0, 0, 0, 0, 0}},
+		{`as_array(0xabcd, 2, "little")`, []int64{0xcd, 0xab}},
+		{`as_array(0xabcd, 3, "little")`, []int64{0xcd, 0xab, 0}},
+		{`as_array(0xabcd, 4, "little")`, []int64{0xcd, 0xab, 0, 0}},
+		{`as_array(0xabcd, 5, "little")`, []int64{0xcd, 0xab, 0, 0, 0}},
+		{`as_array(0xabcd, 6, "little")`, []int64{0xcd, 0xab, 0, 0, 0, 0}},
+		{`as_array(0xabcd, 7, "little")`, []int64{0xcd, 0xab, 0, 0, 0, 0, 0}},
+		{`as_array(0xabcd, 8, "little")`, []int64{0xcd, 0xab, 0, 0, 0, 0, 0, 0}},
+		{`as_array(0xabcd, 2, "big")`, []int64{0xab, 0xcd}},
+		{`as_array(0xabcd, 3, "big")`, []int64{0, 0xab, 0xcd}},
+		{`as_array(0xabcd, 4, "big")`, []int64{0, 0, 0xab, 0xcd}},
+		{`as_array(0xabcd, 5, "big")`, []int64{0, 0, 0, 0xab, 0xcd}},
+		{`as_array(0xabcd, 6, "big")`, []int64{0, 0, 0, 0, 0xab, 0xcd}},
+		{`as_array(0xabcd, 7, "big")`, []int64{0, 0, 0, 0, 0, 0xab, 0xcd}},
+		{`as_array(0xabcd, 8, "big")`, []int64{0, 0, 0, 0, 0, 0, 0xab, 0xcd}},
+		{`as_array(10, 1, "big")`, []int64{10}},
+		{`as_array(10, 2, "big")`, []int64{0, 10}},
+		{`as_array(10, 3, "big")`, []int64{0, 0, 10}},
+		{`as_array(10, 4, "big")`, []int64{0, 0, 0, 10}},
+		{`as_array(10, 5, "big")`, []int64{0, 0, 0, 0, 10}},
+		{`as_array(10, 6, "big")`, []int64{0, 0, 0, 0, 0, 10}},
+		{`as_array(10, 7, "big")`, []int64{0, 0, 0, 0, 0, 0, 10}},
+		{`as_array(10, 8, "big")`, []int64{0, 0, 0, 0, 0, 0, 0, 10}},
+		{`as_array(0xabcd, 1, "little")`, object.RuntimeErrorObj},
+		{`as_array(0xabcd, 1, "little")`, object.RuntimeErrorObj},
+		{`as_array(0xabcd, 1, "big")`, object.RuntimeErrorObj},
+		{`as_array(0xabcd, 1, "big")`, object.RuntimeErrorObj},
+		{`as_array(0xab, 1, "non-ex")`, object.RuntimeErrorObj},
+		{`as_array(0xab, 9, "non-ex")`, object.RuntimeErrorObj},
+		{`as_array(0xab, -1, "non-ex")`, object.RuntimeErrorObj},
+		{`as_array(0xab, 1, "big", 1)`, object.ErrorObj},
+		{`as_array("test", 0xab, 1, "big")`, object.ErrorObj},
 	}
 
 	for _, testCase := range tests {
@@ -372,6 +411,8 @@ func TestBuiltinFunctions(t *testing.T) {
 			testBooleanObject(t, evalBuiltin, expected)
 		case string:
 			testStringObject(t, evalBuiltin, expected)
+		case []int64:
+			testArrayObject(t, testCase.input, evalBuiltin, expected)
 		case object.ObjectType:
 			if evalBuiltin.Type() != expected {
 				t.Errorf("%s: expected object of type %s, got %s", testCase.input, expected, evalBuiltin.Type())
@@ -1334,12 +1375,12 @@ func testStringObject(t *testing.T, obj object.Object, expected string) bool {
 func testArrayObject(t *testing.T, input string, obj object.Object, expected []int64) bool {
 	arrayObj, ok := obj.(*object.Array)
 	if !ok {
-		t.Errorf("expected object to be an Array, got %T", obj)
+		t.Errorf("%s: expected object to be an Array, got %T", input, obj)
 		return false
 	}
 
 	if len(arrayObj.Elements) != len(expected) {
-		t.Errorf("expected array with %d elements, got %d", len(arrayObj.Elements), len(expected))
+		t.Errorf("%s: expected array with %d elements, got %d", input, len(arrayObj.Elements), len(expected))
 		return false
 	}
 
