@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"github.com/Abathargh/harlock/internal/evaluator/bytes"
 	harlockElf "github.com/Abathargh/harlock/internal/evaluator/elf"
-	"github.com/Abathargh/harlock/internal/evaluator/hex"
 	"github.com/Abathargh/harlock/internal/object"
+	"github.com/Abathargh/harlock/pkg/hex"
 	"math"
 	"os"
 	"strconv"
@@ -350,7 +350,6 @@ func builtinHash(args ...object.Object) object.Object {
 	data := args[0].(*object.Array)
 	hashFunc := args[1].(*object.String)
 
-	// TODO: right now this iterates everything twice
 	byteData := make([]byte, len(data.Elements))
 	if err := intArrayToBytes(data, byteData); err != nil {
 		return err
