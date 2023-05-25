@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path"
 	"runtime"
 	"strings"
 )
@@ -71,6 +72,7 @@ func Embed(filename string) error {
 	if err := moveFile(tmpName, execName); err != nil {
 		return embedError(err)
 	}
+	fmt.Printf("Generated %q\n", path.Clean(execName))
 	return nil
 }
 
