@@ -64,7 +64,7 @@ func Embed(filename string) error {
 
 	tmpName := "./temp/embedded_harlock"
 	execName := "./" + strings.Split(filename, ".")[0]
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == "windows" || os.Getenv("GOOS") == "windows" {
 		tmpName += ".exe"
 		execName += ".exe"
 	}
