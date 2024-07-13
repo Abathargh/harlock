@@ -5,6 +5,7 @@ package interpreter
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"runtime/debug"
 
@@ -51,15 +52,16 @@ func Exec(r io.Reader, stderr io.Writer, args ...string) []string {
 	if evaluatedProg != nil {
 		switch evaluatedProg.(type) {
 		case *object.RuntimeError:
-			dumpToStream(stderr, evaluatedProg)
+			return dumpToSlice(evaluatedProg)
 		case *object.Error:
-			dumpToStream(stderr, evaluatedProg)
+			return dumpToSlice(evaluatedProg)
 		}
 	}
 	return nil
 }
 
-func dumpToStream(stderr io.Writer, evaluatedProg object.Object) {
-	_, _ = io.WriteString(stderr, evaluatedProg.Inspect())
-	_, _ = io.WriteString(stderr, "\n")
+func dumpToSlice(evaluatedProg object.Object) []string {
+	return []string{
+		fmt.Sprintf("%s\n", evaluatedProg.Inspect()),
+	}
 }

@@ -72,6 +72,7 @@ func main() {
 			for _, err := range errs {
 				_, _ = io.WriteString(os.Stderr, fmt.Sprintf("%s\n", err))
 			}
+			os.Exit(1)
 		}
 	}
 }
