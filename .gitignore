@@ -2,3 +2,4 @@
 dist/
 harlock
 *.exe
+!cmd/harlock
