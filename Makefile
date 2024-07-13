@@ -25,6 +25,7 @@ clean :
 	rm -rf dist harlock
 
 
+.PHONY : all
 .PHONY : deb
 .PHONY : dist
 .PHONY : standalone
