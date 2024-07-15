@@ -154,6 +154,15 @@ func init() {
 		Function: builtinAsArray,
 	}
 
+	// Builtin: builtinHelp(int, int, string) -> array
+	// Converts an integer to its representation as an array of bytes of specific
+	// size and endianness.
+	builtins["help"] = &object.Builtin{
+		Name:     "help",
+		ArgTypes: []object.ObjectType{object.StringObj},
+		Function: builtinHelp,
+	}
+
 	builtinMethods = make(map[object.ObjectType]MethodMapping)
 	builtinMethods[object.ArrayObj] = MethodMapping{
 		// Builtin: array.map(function) -> array

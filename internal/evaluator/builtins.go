@@ -427,6 +427,36 @@ func builtinAsArray(args ...object.Object) object.Object {
 	return retArr
 }
 
+func builtinHelp(args ...object.Object) object.Object {
+	builtinName := args[0].(*object.String)
+	builtinFun, isBuiltin := builtins[builtinName.Value]
+	if isBuiltin {
+		return generateHelpMsg(builtinName.Value, builtinFun)
+	}
+
+	for key, val := range builtinMethods {
+		builtinMethod, isMethod := val[builtinName.Value]
+		if isMethod {
+			methodName := fmt.Sprintf("%s.%s", string(key), builtinName.Value)
+			return generateHelpMsg(methodName, builtinMethod)
+		}
+	}
+	return newTypeError("%s is not a builtin", builtinName.Value)
+}
+
+func generateHelpMsg(name string, builtin object.CallableBuiltin) *object.String {
+	argsTypes := builtin.GetBuiltinArgTypes()
+	args := make([]string, len(argsTypes))
+	for idx, argType := range argsTypes {
+		args[idx] = string(argType)
+	}
+
+	argsStr := strings.Join(args, ", ")
+	return &object.String{
+		Value: fmt.Sprintf("%s(%s)", name, argsStr),
+	}
+}
+
 func intArrayToBytes(src *object.Array, dst []byte) *object.RuntimeError {
 	for idx, obj := range src.Elements {
 		intByte, isInt := obj.(*object.Integer)
