@@ -7,14 +7,15 @@ import (
 	"crypto/sha256"
 	hex2 "encoding/hex"
 	"fmt"
-	"github.com/Abathargh/harlock/internal/evaluator/bytes"
-	harlockElf "github.com/Abathargh/harlock/internal/evaluator/elf"
-	"github.com/Abathargh/harlock/internal/object"
-	"github.com/Abathargh/harlock/pkg/hex"
 	"math"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/Abathargh/harlock/internal/evaluator/bytes"
+	harlockElf "github.com/Abathargh/harlock/internal/evaluator/elf"
+	"github.com/Abathargh/harlock/internal/object"
+	"github.com/Abathargh/harlock/pkg/hex"
 )
 
 const (
@@ -164,7 +165,7 @@ func builtinFromhex(args ...object.Object) object.Object {
 	if strLen%2 != 0 || strLen == 0 {
 		return newTypeError("wrong size for hex string literal")
 	}
-	arr := make([]object.Object, strLen/2, strLen/2)
+	arr := make([]object.Object, strLen/2)
 	for idx := 0; idx < strLen; idx += 2 {
 		digit, err := strconv.ParseInt(strVal[idx:idx+2], 16, 64)
 		if err != nil {
@@ -452,8 +453,9 @@ func generateHelpMsg(name string, builtin object.CallableBuiltin) *object.String
 	}
 
 	argsStr := strings.Join(args, ", ")
+	descStr := builtin.GetBuiltinDescription()
 	return &object.String{
-		Value: fmt.Sprintf("%s(%s)", name, argsStr),
+		Value: fmt.Sprintf("%s(%s): %s", name, argsStr, descStr),
 	}
 }
 

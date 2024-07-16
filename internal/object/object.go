@@ -2,12 +2,13 @@ package object
 
 import (
 	"fmt"
-	"github.com/Abathargh/harlock/internal/evaluator/bytes"
-	"github.com/Abathargh/harlock/internal/evaluator/elf"
-	"github.com/Abathargh/harlock/pkg/hex"
 	"hash/fnv"
 	"strconv"
 	"strings"
+
+	"github.com/Abathargh/harlock/internal/evaluator/bytes"
+	"github.com/Abathargh/harlock/internal/evaluator/elf"
+	"github.com/Abathargh/harlock/pkg/hex"
 
 	"github.com/Abathargh/harlock/internal/ast"
 )
@@ -256,18 +257,24 @@ func (h *Map) Inspect() string {
 
 type CallableBuiltin interface {
 	GetBuiltinName() string
+	GetBuiltinDescription() string
 	GetBuiltinArgTypes() []ObjectType
 	Call(args ...Object) Object
 }
 
 type Builtin struct {
-	Name     string
-	ArgTypes []ObjectType
-	Function BuiltinFunction
+	Name        string
+	Description string
+	ArgTypes    []ObjectType
+	Function    BuiltinFunction
 }
 
 func (b *Builtin) GetBuiltinName() string {
 	return b.Name
+}
+
+func (b *Builtin) GetBuiltinDescription() string {
+	return b.Description
 }
 
 func (b *Builtin) GetBuiltinArgTypes() []ObjectType {
@@ -287,13 +294,18 @@ func (b *Builtin) Inspect() string {
 }
 
 type Method struct {
-	Name       string
-	ArgTypes   []ObjectType
-	MethodFunc MethodFunction
+	Name        string
+	Description string
+	ArgTypes    []ObjectType
+	MethodFunc  MethodFunction
 }
 
 func (m *Method) GetBuiltinName() string {
 	return m.Name
+}
+
+func (m *Method) GetBuiltinDescription() string {
+	return m.Description
 }
 
 func (m *Method) GetBuiltinArgTypes() []ObjectType {
