@@ -424,7 +424,7 @@ func init() {
 			Name: "elf.write_section",
 			Description: "Attempts to write the contents of the arg[1] byte " +
 				"array to the arg[0] section with arg[2] offset. This mutates the " +
-				"elf file object but not the copy on disk.Call the save() function" +
+				"elf file object but not the copy on disk. Call the save() function" +
 				"to make the changes persistent.",
 			ArgTypes: []object.ObjectType{object.StringObj, object.ArrayObj,
 				object.IntegerObj},

@@ -430,32 +430,58 @@ func builtinAsArray(args ...object.Object) object.Object {
 
 func builtinHelp(args ...object.Object) object.Object {
 	builtinName := args[0].(*object.String)
-	builtinFun, isBuiltin := builtins[builtinName.Value]
+	name := builtinName.Value
+	builtinFun, isBuiltin := builtins[name]
 	if isBuiltin {
-		return generateHelpMsg(builtinName.Value, builtinFun)
+		return generateHelpMsg(name, builtinFun)
 	}
 
-	for key, val := range builtinMethods {
-		builtinMethod, isMethod := val[builtinName.Value]
-		if isMethod {
-			methodName := fmt.Sprintf("%s.%s", string(key), builtinName.Value)
-			return generateHelpMsg(methodName, builtinMethod)
+	// Base the check on the `Name` and assume we got `type`.method`
+	nameSplitted := strings.Split(name, ".")
+	if len(nameSplitted) != 2 {
+		return newTypeError("%s is not a builtin", name)
+	}
+
+	for _, val := range builtinMethods {
+		builtinMethod, isMethod := val[nameSplitted[1]]
+		if isMethod && builtinMethod.Name == name {
+			return generateHelpMsg(name, builtinMethod)
 		}
 	}
-	return newTypeError("%s is not a builtin", builtinName.Value)
+	return newTypeError("%s is not a builtin", name)
 }
 
 func generateHelpMsg(name string, builtin object.CallableBuiltin) *object.String {
+	const lineLimit = 80
+	var builder strings.Builder
 	argsTypes := builtin.GetBuiltinArgTypes()
-	args := make([]string, len(argsTypes))
+	descStr := builtin.GetBuiltinDescription()
+
+	builder.WriteString(name)
+	builder.WriteRune('(')
+
 	for idx, argType := range argsTypes {
-		args[idx] = string(argType)
+		builder.WriteString(string(argType))
+		if idx != len(argsTypes)-1 {
+			builder.WriteString(", ")
+			continue
+		}
+		builder.WriteString(") \n")
 	}
 
-	argsStr := strings.Join(args, ", ")
-	descStr := builtin.GetBuiltinDescription()
+	curr := 0
+	for _, s := range strings.Split(descStr, " ") {
+		if curr+len(s) >= lineLimit {
+			builder.WriteRune('\n')
+			curr = 0
+		}
+		n, _ := builder.WriteString(s)
+		builder.WriteRune(' ')
+		curr += n + 1
+	}
+
 	return &object.String{
-		Value: fmt.Sprintf("%s(%s): %s", name, argsStr, descStr),
+		Value: builder.String(),
 	}
 }
 
